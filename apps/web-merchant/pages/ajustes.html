@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/static/css/navbar.css">
+        <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+        <style>
+          /* Layout responsivo sin Tailwind (fallback) */
+          @media (min-width: 640px) { /* ~sm */
+                #responsive-settings { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5rem; align-items: start; }
+                #responsive-left { grid-column: span 5 / span 5; }
+                #responsive-right { grid-column: span 7 / span 7; }
+                #responsive-right section { margin-top: 0; }
+            }
+            /* Margen en mobile */
+            #responsive-right section { margin-top: 2rem; }
+            /* Altura del mapa con fallback */
+            #gmap-embed { width: 100%; height: 16rem; }
+            @media (min-width: 640px) { #gmap-embed { height: 20rem; } }
+        </style>
+    </head>
+    <body class="pt-14">
+    <!--Placeholder de navbar -->
+        <div id="navbar-placeholder"></div> 
+    <!-- Script Placeholder de navbar y tokenización -->
+        <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const mount = document.getElementById('navbar-placeholder');
+                try {
+                // cache-buster para evitar versiones viejas en escritorio
+                const res = await fetch('../partials/navbar.html?v=' + Date.now());
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const html = await res.text();
+                mount.innerHTML = html;
+                // Mover el contenido de la página dentro del recuadro con líneas
+                const content = document.getElementById('page-content');
+                let slot = mount.querySelector('#content-slot');
+                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
+                if (!slot) {
+                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
+                    if (dashed) {
+                    slot = document.createElement('div');
+                    slot.id = 'content-slot';
+                    dashed.appendChild(slot);
+                    }
+                }
+                if (slot && content) {
+                    slot.appendChild(content);
+                } else {
+                    console.warn('No se encontró content-slot ni contenido para mover');
+                }
+                // Cargar tabs y activar la pestaña correspondiente (forzar por data-active-tab)
+                const tabsMount = document.getElementById('tabs-placeholder');
+                if (tabsMount) {
+                    const tRes = await fetch('../partials/tabsajustes.html?v=' + Date.now());
+                    if (!tRes.ok) throw new Error('HTTP ' + tRes.status);
+                    tabsMount.innerHTML = await tRes.text();
+                    const basic = tabsMount.querySelector('[data-tab="basic"]');
+                    const team  = tabsMount.querySelector('[data-tab="team"]');
+                    const reset = () => {
+                        [basic, team].forEach(a => {
+                        if (!a) return;
+                        a.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
+                        a.classList.add('border-transparent');
+                        a.removeAttribute('aria-current');
+                        });
+                    };
+                    const setActive = (el) => {
+                        if (!el) return;
+                        el.classList.add('text-blue-600','border-b-2','border-blue-600','active','dark:text-blue-500','dark:border-blue-500');
+                        el.classList.remove('border-transparent');
+                        el.setAttribute('aria-current','page');
+                    };
+                    const setInactive = (el) => {
+                        if (!el) return;
+                        el.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
+                        el.classList.add('border-transparent');
+                        el.removeAttribute('aria-current');
+                    };
+                    const desired = document.getElementById('page-content')?.dataset.activeTab || 'basic';
+                    const reapply = () => {
+                        reset();
+                        if (desired === 'team') {
+                        setActive(team);
+                        setInactive(basic);
+                        } else {
+                        setActive(basic);
+                        setInactive(team);
+                        }
+                    };
+                    reapply();
+                    requestAnimationFrame(reapply);
+                }
+                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
+                if (window.initFlowbite) window.initFlowbite();
+                } catch (err) {
+                console.error('Error al cargar la barra de navegación:', err);
+                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
+                }
+            });
+        </script>
+        <main id="page-content" data-active-tab="basic">
+            <div id="responsive-settings" class="mt-2 sm:grid sm:grid-cols-12 sm:gap-6 items-start">
+                <!-- Col izquierda: formulario + foto -->
+                <div id="responsive-left" class="sm:col-span-6 lg:col-span-5">
+                    <h1 class="text-3xl font-bold">Ajustes</h1>
+                    <div id="tabs-placeholder" class="mb-4"></div>
+                    <!-- Campos de información -->
+                    <form class="px-3 py-1">
+                        <!-- Nombre completo -->
+                        <label for="businessName" class="block mb-2 text-sm font-medium text-gray-900">Nombre completo</label>
+                        <div class="flex items-center px-3 py-2 rounded-lg bg-gray-50">
+                            <textarea id="chat" rows="1" class="block mx-4 p-2.5 w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Nombre completo"></textarea>
+                        </div>
+                        <!-- Correo -->
+                        <label for="businessName" class="block mb-2 text-sm font-medium text-gray-900">Correo</label>
+                        <div class="flex items-center px-3 py-2 rounded-lg bg-gray-50">
+                            <textarea id="chat" rows="1" class="block mx-4 p-2.5 w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Correo"></textarea>
+                        </div>
+                        <!-- Teléfono -->
+                        <label for="businessName" class="block mb-2 text-sm font-medium text-gray-900">Número telefonico</label>
+                        <div class="flex items-center px-3 py-1 rounded-lg bg-gray-50">
+                            <textarea id="chat" rows="1" class="block mx-4 p-2.5 w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="Número"></textarea>
+                        </div>
+                    </form>
+
+                    <!-- Configuración imagen -->
+                    <div class="flex items-center gap-4 mt-4 px-3 py-1 rounded-lg bg-gray-50">
+                        <img class="w-10 h-30 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-5.jpg" alt="">
+                        <div class="font-medium">
+                            <div>Foto de Perfil</div>
+                            <div class="text-sm text-gray-500">Desde agosto 2024</div>
+                            <button class="text-blue-600 hover:underline dark:text-blue-500">Cambiar foto</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Col derecha: mapa -->
+                <div id="responsive-right" class="sm:col-span-6 lg:col-span-7">
+                    <!-- Mapa ubicación -->
+                    <section class="mt-8 sm:mt-0">
+                        <label class="block mb-3 text-base font-medium text-gray-900 text-center sm:text-right">Dirección del Establecimiento</label>
+                        <!-- (Opcional) el backend puede prellenar este hidden -->
+                        <input type="hidden" id="address" name="address" value="Reforma 22, Emiliano Zapata, 52918 Ciudad López Mateos, Méx.">
+                        <iframe id="gmap-embed"
+                                class="w-full h-64 sm:h-80 rounded-lg border border-gray-300"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                src="">
+                        </iframe>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </body>
+    <script>
+        (function() {
+            const iframe = document.getElementById('gmap-embed');
+            if (!iframe) return;
+
+            function setMap(address) {
+                if (!address || !address.trim()) return;
+                const url = 'https://www.google.com/maps?q=' + encodeURIComponent(address) + '&hl=es&z=16&output=embed';
+                iframe.src = url;
+            }
+
+            // ✅ DEMO: sin backend aún, mostramos esta dirección fija
+            const DEMO_ADDRESS = 'Reforma 22, Emiliano Zapata, 52918 Ciudad López Mateos, Méx.';
+            setMap(DEMO_ADDRESS);
+
+            /*
+            // 🔜 Futuro: fuentes dinámicas (descomenta cuando tengas backend)
+
+            // 1) Dirección inyectada por el backend
+            if (window.BUSINESS_ADDRESS) {
+                setMap(window.BUSINESS_ADDRESS);
+                return;
+            }
+
+            // 2) Dirección prellenada en hidden
+            const addrField = document.getElementById('address');
+            if (addrField && addrField.value) {
+                setMap(addrField.value);
+                return;
+            }
+
+            // 3) Fetch al backend (JSON: { address: "..." })
+            fetch('/api/merchant/location', { headers: { 'Accept': 'application/json' }})
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => setMap(data.address || data.direccion || data.addr))
+                .catch(() => {});
+            */
+        })();
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+</html>

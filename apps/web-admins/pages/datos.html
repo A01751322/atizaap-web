@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/static/css/navbar.css">
+        <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    </head>
+    <body class="pt-14">
+        <div id="navbar-placeholder"></div>
+        <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const mount = document.getElementById('navbar-placeholder');
+                try {
+                // cache-buster para evitar versiones viejas en escritorio
+                const res = await fetch('../partials/navbar.html?v=' + Date.now());
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const html = await res.text();
+                mount.innerHTML = html;
+
+                // Mover el contenido de la página dentro del recuadro con líneas
+                const content = document.getElementById('page-content');
+                let slot = mount.querySelector('#content-slot');
+
+                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
+                if (!slot) {
+                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
+                    if (dashed) {
+                    slot = document.createElement('div');
+                    slot.id = 'content-slot';
+                    dashed.appendChild(slot);
+                    }
+                }
+
+                if (slot && content) {
+                    slot.appendChild(content);
+                } else {
+                    console.warn('No se encontró content-slot ni contenido para mover');
+                }
+
+                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
+                if (window.initFlowbite) window.initFlowbite();
+                } catch (err) {
+                console.error('Error al cargar la barra de navegación:', err);
+                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
+                }
+            });
+        </script>
+        <main id="page-content">
+            <h1 class="text-3xl font-bold underline">
+                Hola, Mundo!
+            </h1>
+        </main>
+    </body>
+    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+</html>
