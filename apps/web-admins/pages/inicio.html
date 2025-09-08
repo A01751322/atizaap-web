@@ -11,66 +11,274 @@
         <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
     </head>
     <body class="pt-14">
-        <!-- Placeholder de navbar -->
-        <div id="navbar-placeholder"></div>
-        <!-- Script Placeholder de navbar y tokenización -->
-        <script>
-          document.addEventListener('DOMContentLoaded', async () => {
-            const mount = document.getElementById('navbar-placeholder');
-            try {
-              // cache-buster para evitar versiones viejas en escritorio
-              const res = await fetch('../partials/navbar.html?v=' + Date.now());
-              if (!res.ok) throw new Error('HTTP ' + res.status);
-              const html = await res.text();
-              mount.innerHTML = html;
+    <!--Placeholder de navbar -->
+        <div id="navbar-placeholder"></div> 
+    <!-- Script Placeholder de navbar y tokenización -->
+            <script>
+            document.addEventListener('DOMContentLoaded', async () => {
+                const mount = document.getElementById('navbar-placeholder');
+                try {
+                // cache-buster para evitar versiones viejas en escritorio
+                const res = await fetch('../partials/navbar.html?v=' + Date.now());
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const html = await res.text();
+                mount.innerHTML = html;
 
-              // Mover el contenido de la página dentro del recuadro con líneas
-              const content = document.getElementById('page-content');
-              let slot = mount.querySelector('#content-slot');
+                // Mover el contenido de la página dentro del recuadro con líneas
+                const content = document.getElementById('page-content');
+                let slot = mount.querySelector('#content-slot');
 
-              // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
-              if (!slot) {
-                const dashed = mount.querySelector('.border-dashed.rounded-lg');
-                if (dashed) {
-                  slot = document.createElement('div');
-                  slot.id = 'content-slot';
-                  dashed.appendChild(slot);
+                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
+                if (!slot) {
+                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
+                    if (dashed) {
+                    slot = document.createElement('div');
+                    slot.id = 'content-slot';
+                    dashed.appendChild(slot);
+                    }
                 }
-              }
 
-              if (slot && content) {
-                slot.appendChild(content);
-              } else {
-                console.warn('No se encontró content-slot ni contenido para mover');
-              }
+                if (slot && content) {
+                    slot.appendChild(content);
+                } else {
+                    console.warn('No se encontró content-slot ni contenido para mover');
+                }
 
-              // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
-              if (window.initFlowbite) window.initFlowbite();
-            } catch (err) {
-              console.error('Error al cargar la barra de navegación:', err);
-              mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
-            }
-          });
+                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
+                if (window.initFlowbite) window.initFlowbite();
+                } catch (err) {
+                console.error('Error al cargar la barra de navegación:', err);
+                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
+                }
+            });
         </script>
 
-        <!-- Contenido -->
-        <main id="page-content">
-          <!-- Título de página-->
-          <h1 class="text-2xl sm:text-3xl font-bold mb-3">Inicio</h1>
+        <!-- Contenido página promociones -->
+        <main id="page-content" class="space-y-4">
+            <!-- Encabezado -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h1 class="text-3xl font-bold tracking-tight text-gray-900">Promociones</h1>
+                <div class="flex items-center gap-2">
+                <div class="hidden sm:flex items-center justify-center h-9 px-3 rounded-full border border-gray-200 text-xs font-medium text-gray-600">Últimas 100</div>
+                <div class="relative">
+                    <input type="text" placeholder="Buscar" class="block w-44 sm:w-56 rounded-lg border border-gray-300 bg-white p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500" />
+                </div>
+                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4"><path d="M3.75 5.25a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 .53 1.28l-5.53 5.53v4.69a.75.75 0 0 1-1.28.53l-2-2A.75.75 0 0 1 10 14.5V11.3L4.28 5.78a.75.75 0 0 1-.53-.53v0Z"/></svg>
+                    Filtrar
+                </button>
+                <a href="#" class="inline-flex items-center rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">Crear Promoción</a>
+                </div>
+            </div>
 
-          <!-- Tabla Negocios-->
-          <div class="flex items-center justify-center h-48 mb-4 rounded-sm bg-gray-50 dark:bg-gray-800">
-            <p class="text-2xl text-gray-400 dark:text-gray-500">
-              <span class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">Negocios</span>
-              <div id="stacked-bar-chart" style="height: 400px;"></div>
-            </p>
-          </div>
-
-          <!-- Script para Tabla Negocios-->
-          <script>
-            
-          </script>
+            <!-- Tabla -->
+            <div class="relative overflow-x-auto shadow-sm sm:rounded-lg border border-gray-200">
+                <table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs uppercase bg-gray-50 text-gray-700">
+                    <tr>
+                    <th scope="col" class="px-4 py-3 w-12">#</th>
+                    <th scope="col" class="px-6 py-3">Creador</th>
+                    <th scope="col" class="px-6 py-3">Estatus</th>
+                    <th scope="col" class="px-6 py-3">Creada en</th>
+                    <th scope="col" class="px-6 py-3">Descripción</th>
+                    <th scope="col" class="px-6 py-3 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Row 1 -->
+                    <tr class="bg-white border-t border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-4">01</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Natukunda Cathy</div>
+                                    <div class="text-xs text-gray-500">cathy@gmail.com</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="relative inline-block" data-status-container>
+                                <button type="button" id="status-btn-01" data-status-btn data-dropdown-toggle="status-dd-01" class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 rounded-full bg-green-500" data-status-dot></span>
+                                    <span data-status-text>Activa</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ms-1 h-3 w-3"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                                </button>
+                                <div id="status-dd-01" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-28">
+                                    <ul class="py-1 text-sm text-gray-700">
+                                        <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Activa">Activa</button></li>
+                                        <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Inactiva">Inactiva</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">May 24, 2025</td>
+                        <td class="px-6 py-4">40% en chamarras</td>
+                        <td class="px-6 py-4 text-right">
+                            <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100" title="Editar">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-emerald-600"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0L3.9 16.388a5.25 5.25 0 0 0-1.32 2.214l-.8 2.401a.75.75 0 0 0 .948.948l2.401-.8a5.25 5.25 0 0 0 2.214-1.32L21.731 5.981a2.625 2.625 0 0 0 0-3.712Zm-5.004 3.256 1.748 1.748-9.9 9.9a3.75 3.75 0 0 1-1.582.95l-1.86.62.62-1.86a3.75 3.75 0 0 1 .95-1.582l9.9-9.9Z"/></svg>
+                            </button>
+                            <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100 ms-1" title="Borrar">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-red-600"><path d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V5H19.5a.75.75 0 0 1 0 1.5h-15A.75.75 0 0 1 4.5 5H9V3.75Z"/><path d="M6.75 7.25h10.5l-.64 11.063A2.25 2.25 0 0 1 14.37 20.5H9.63a2.25 2.25 0 0 1-2.241-2.187L6.75 7.25Z"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Row 2 -->
+                    <tr class="bg-white border-t border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-4">02</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                                <div>
+                                    <div class="font-medium text-gray-900">Colin Lubembe</div>
+                                    <div class="text-xs text-gray-500">colin@gmail.com</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="relative inline-block" data-status-container>
+                                <button type="button" id="status-btn-02" data-status-btn data-dropdown-toggle="status-dd-02" class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 bg-yellow-100 text-yellow-800">
+                                    <span class="w-2 h-2 rounded-full bg-yellow-500" data-status-dot></span>
+                                    <span data-status-text>Inactiva</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ms-1 h-3 w-3"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                                </button>
+                                <div id="status-dd-02" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-28">
+                                    <ul class="py-1 text-sm text-gray-700">
+                                        <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Activa">Activa</button></li>
+                                        <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Inactiva">Inactiva</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">Apr 24, 2025</td>
+                        <td class="px-6 py-4">Sin descripción</td>
+                        <td class="px-6 py-4 text-right">
+                            <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100" title="Editar">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-emerald-600"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0L3.9 16.388a5.25 5.25 0 0 0-1.32 2.214l-.8 2.401a.75.75 0 0 0 .948.948l2.401-.8a5.25 5.25 0 0 0 2.214-1.32L21.731 5.981a2.625 2.625 0 0 0 0-3.712Zm-5.004 3.256 1.748 1.748-9.9 9.9a3.75 3.75 0 0 1-1.582.95l-1.86.62.62-1.86a3.75 3.75 0 0 1 .95-1.582l9.9-9.9Z"/></svg>
+                            </button>
+                            <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100 ms-1" title="Borrar">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-red-600"><path d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V5H19.5a.75.75 0 0 1 0 1.5h-15A.75.75 0 0 1 4.5 5H9V3.75Z"/><path d="M6.75 7.25h10.5l-.64 11.063A2.25 2.25 0 0 1 14.37 20.5H9.63a2.25 2.25 0 0 1-2.241-2.187L6.75 7.25Z"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Row 3 -->
+                    <tr class="bg-white border-t border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-4">03</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                        <div>
+                            <div class="font-medium text-gray-900">Nanyonga Rahmah</div>
+                            <div class="text-xs text-gray-500">nanyonga@gmail.com</div>
+                        </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="relative inline-block" data-status-container>
+                            <button type="button" id="status-btn-03" data-status-btn data-dropdown-toggle="status-dd-03" class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 bg-yellow-100 text-yellow-800">
+                                <span class="w-2 h-2 rounded-full bg-yellow-500" data-status-dot></span>
+                                <span data-status-text>Inactiva</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ms-1 h-3 w-3"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <div id="status-dd-03" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-28">
+                                <ul class="py-1 text-sm text-gray-700">
+                                    <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Activa">Activa</button></li>
+                                    <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Inactiva">Inactiva</button></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">May 14, 2025</td>
+                    <td class="px-6 py-4">Sin descripción</td>
+                    <td class="px-6 py-4 text-right">
+                        <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-emerald-600"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0L3.9 16.388a5.25 5.25 0 0 0-1.32 2.214l-.8 2.401a.75.75 0 0 0 .948.948l2.401-.8a5.25 5.25 0 0 0 2.214-1.32L21.731 5.981a2.625 2.625 0 0 0 0-3.712Zm-5.004 3.256 1.748 1.748-9.9 9.9a3.75 3.75 0 0 1-1.582.95l-1.86.62.62-1.86a3.75 3.75 0 0 1 .95-1.582l9.9-9.9Z"/></svg>
+                        </button>
+                        <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100 ms-1" title="Borrar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-red-600"><path d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V5H19.5a.75.75 0 0 1 0 1.5h-15A.75.75 0 0 1 4.5 5H9V3.75Z"/><path d="M6.75 7.25h10.5l-.64 11.063A2.25 2.25 0 0 1 14.37 20.5H9.63a2.25 2.25 0 0 1-2.241-2.187L6.75 7.25Z"/></svg>
+                        </button>
+                    </td>
+                    </tr>
+                    <!-- Row 4 -->
+                    <tr class="bg-white border-t border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-4">04</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                        <div>
+                            <div class="font-medium text-gray-900">Natukunda Cathy</div>
+                            <div class="text-xs text-gray-500">catheriney@gmail.com</div>
+                        </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="relative inline-block" data-status-container>
+                            <button type="button" id="status-btn-04" data-status-btn data-dropdown-toggle="status-dd-04" class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 bg-green-100 text-green-800">
+                                <span class="w-2 h-2 rounded-full bg-green-500" data-status-dot></span>
+                                <span data-status-text>Activa</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ms-1 h-3 w-3"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <div id="status-dd-04" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-28">
+                                <ul class="py-1 text-sm text-gray-700">
+                                    <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Activa">Activa</button></li>
+                                    <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100" data-set-status="Inactiva">Inactiva</button></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">May 16, 2025</td>
+                    <td class="px-6 py-4">60% antes de las 2 pm</td>
+                    <td class="px-6 py-4 text-right">
+                        <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-emerald-600"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0L3.9 16.388a5.25 5.25 0 0 0-1.32 2.214l-.8 2.401a.75.75 0 0 0 .948.948l2.401-.8a5.25 5.25 0 0 0 2.214-1.32L21.731 5.981a2.625 2.625 0 0 0 0-3.712Zm-5.004 3.256 1.748 1.748-9.9 9.9a3.75 3.75 0 0 1-1.582.95l-1.86.62.62-1.86a3.75 3.75 0 0 1 .95-1.582l9.9-9.9Z"/></svg>
+                        </button>
+                        <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100 ms-1" title="Borrar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 text-red-600"><path d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V5H19.5a.75.75 0 0 1 0 1.5h-15A.75.75 0 0 1 4.5 5H9V3.75Z"/><path d="M6.75 7.25h10.5l-.64 11.063A2.25 2.25 0 0 1 14.37 20.5H9.63a2.25 2.25 0 0 1-2.241-2.187L6.75 7.25Z"/></svg>
+                        </button>
+                    </td>
+                    </tr>
+                </tbody>
+                </table>
+                <!-- Footer de tabla -->
+                <div class="flex items-center justify-between px-4 py-3 text-xs text-gray-500">
+                    <span>Viendo 4 resultados de 100</span>
+                    <div class="hidden sm:flex items-center gap-2">
+                        <a href="#" class="p-1 rounded hover:bg-gray-100" aria-label="Página anterior">‹</a>
+                        <a href="#" class="p-1 rounded hover:bg-gray-100">1</a>
+                        <a href="#" class="p-1 rounded hover:bg-gray-100">2</a>
+                        <a href="#" class="p-1 rounded hover:bg-gray-100">3</a>
+                        <a href="#" class="p-1 rounded hover:bg-gray-100" aria-label="Página siguiente">›</a>
+                    </div>
+                </div>
+            </div>
         </main>
     </body>
+    <script>
+        (function(){
+        function applyStatus(container, value){
+            const btn = container.querySelector('[data-status-btn]');
+            const dot = btn.querySelector('[data-status-dot]');
+            const text = btn.querySelector('[data-status-text]');
+            btn.classList.remove('bg-green-100','text-green-800','bg-yellow-100','text-yellow-800');
+            dot.classList.remove('bg-green-500','bg-yellow-500');
+            if(value === 'Activa'){
+            btn.classList.add('bg-green-100','text-green-800');
+            dot.classList.add('bg-green-500');
+            text.textContent = 'Activa';
+            } else {
+            btn.classList.add('bg-yellow-100','text-yellow-800');
+            dot.classList.add('bg-yellow-500');
+            text.textContent = 'Inactiva';
+            }
+        }
+        document.addEventListener('click', function(e){
+            const opt = e.target.closest('[data-set-status]');
+            if(!opt) return;
+            const value = opt.getAttribute('data-set-status');
+            const container = opt.closest('[data-status-container]');
+            if(container) applyStatus(container, value);
+        });
+        })();
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>
