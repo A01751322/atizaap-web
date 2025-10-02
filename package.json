@@ -13,8 +13,7 @@
     "@tailwindcss/postcss": "^4.1.12",
     "flowbite": "^3.1.2",
     "postcss": "^8.5.6",
+    "serve": "^14.2.5",
     "tailwindcss": "^4.1.12"
   }
-
 }
-

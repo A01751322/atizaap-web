@@ -46,11 +46,90 @@
                 }
             });
         </script>
-        <main id="page-content">
-            <h1 class="text-3xl font-bold underline">
-                Hola, Mundo!
-            </h1>
+        <main id="page-content" data-active-tab="basic">
+            <div id="responsive-settings" class="mt-2 sm:grid sm:grid-cols-12 sm:gap-6 items-start">
+                <!-- Col izquierda: formulario + foto -->
+                <div id="responsive-left" class="sm:col-span-6 lg:col-span-5">
+                    <h1 class="text-3xl font-bold">Datos</h1>
+                    <div id="tabs-placeholder" class="mb-4"></div>
+                    <!-- Campos de información -->
+                    <div class="flex items-center justify-center h-48 mb-4 rounded-sm bg-gray-50">
+                        <p class="text-2xl text-gray-400">
+                            <span class="text-lg sm:text-xl font-bold text-gray-900 mb-2">Comercios Actualizados</span>
+                            <div id="stacked-bar-chart" style="height: 400px;"></div>
+                        </p>
+                    </div>
+    
+                    <div class="flex items-center justify-center h-48 mb-4 rounded-sm bg-gray-50">
+                        <p class="text-2xl text-gray-400">
+                            <span class="text-lg sm:text-xl font-bold text-gray-900 mb-2">Comercios más Visitados</span>
+                            <div id="stacked-bar-chart" style="height: 400px;"></div>
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-center h-48 mb-4 rounded-sm bg-gray-50">
+                        <p class="text-2xl text-gray-400">
+                            <span class="text-lg sm:text-xl font-bold text-gray-900 mb-2">Comercios Activos</span>
+                            <div id="stacked-bar-chart" style="height: 400px;"></div>
+                        </p>
+                    </div>
+                </div>
+                <!-- Col derecha: mapa -->
+                <div id="responsive-right" class="sm:col-span-6 lg:col-span-7">
+                    <!-- Mapa ubicación -->
+                    <section class="mt-8 sm:mt-0">
+                        <label class="block mb-3 text-2xl font-bold text-gray-900 text-center sm:text-right">Zonas mas activas</label>
+                        <!-- (Opcional) el backend puede prellenar este hidden -->
+                        <input type="hidden" id="address" name="address" value="Reforma 22, Emiliano Zapata, 52918 Ciudad López Mateos, Méx.">
+                        <iframe id="gmap-embed"
+                                class="w-full h-64 sm:h-80 rounded-lg border border-gray-300"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                src="">
+                        </iframe>
+                    </section>
+                </div>
+            </div>
         </main>
     </body>
+    <script>
+        (function() {
+            const iframe = document.getElementById('gmap-embed');
+            if (!iframe) return;
+
+            function setMap(address) {
+                if (!address || !address.trim()) return;
+                const url = 'https://www.google.com/maps?q=' + encodeURIComponent(address) + '&hl=es&z=16&output=embed';
+                iframe.src = url;
+            }
+
+            // ✅ DEMO: sin backend aún, mostramos esta dirección fija
+            const DEMO_ADDRESS = 'Reforma 22, Emiliano Zapata, 52918 Ciudad López Mateos, Méx.';
+            setMap(DEMO_ADDRESS);
+
+            /*
+            // 🔜 Futuro: fuentes dinámicas (descomenta cuando tengas backend)
+
+            // 1) Dirección inyectada por el backend
+            if (window.BUSINESS_ADDRESS) {
+                setMap(window.BUSINESS_ADDRESS);
+                return;
+            }
+
+            // 2) Dirección prellenada en hidden
+            const addrField = document.getElementById('address');
+            if (addrField && addrField.value) {
+                setMap(addrField.value);
+                return;
+            }
+
+            // 3) Fetch al backend (JSON: { address: "..." })
+            fetch('/api/merchant/location', { headers: { 'Accept': 'application/json' }})
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => setMap(data.address || data.direccion || data.addr))
+                .catch(() => {});
+            */
+        })();
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>
