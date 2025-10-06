@@ -34,6 +34,10 @@ app.get("/merchant", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-merchant", "inicio.html"));
 });
 
+// Ejemplo de una ruta que debe existir en tu functions/index.js
+app.get("/merchant/datos", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "datos.html"));
+});
 // ¡Puedes seguir añadiendo todas las rutas que necesites aquí!
 
 exports.app = functions.https.onRequest(app);
