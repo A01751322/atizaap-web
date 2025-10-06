@@ -24,20 +24,51 @@ app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "register.html"));
 });
 
-// --- Rutas para la sección "web-admins" ---
+// ------ ---------------------------------- ------
+// ------ Rutas para la sección "web-admins" -------
+// ------ ---------------------------------- ------
+
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-admins", "inicio.html"));
 });
 
-// --- Rutas para la sección "web-merchant" ---
+// ------ ------------------------------------ ------
+// ------ Rutas para la sección "web-merchant" ------
+// ------ ------------------------------------ ------
+
+// --- Ruta principal ---
 app.get("/merchant", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-merchant", "inicio.html"));
 });
 
-// Ejemplo de una ruta que debe existir en tu functions/index.js
+// --- Ruta Datos ---
 app.get("/merchant/datos", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-merchant", "datos.html"));
 });
-// ¡Puedes seguir añadiendo todas las rutas que necesites aquí!
+
+// --- Ruta promociones ---
+app.get("/merchant/promociones", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "promocion.html"));
+});
+
+// --- Ruta Ajustes ---
+app.get("/merchant/ajustes", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "ajustes.html"));
+});
+
+// --- Ruta Ajustes equipo ---
+app.get("/merchant/ajustes-equipos", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "ajusteseq.html"));
+});
+
+// --- Ruta registrar ---
+app.get("/merchant/registrar", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "registrar.html"));
+});
+
+// --- Ruta registrar Qr ---
+app.get("/merchant/registrar-qr", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-merchant", "regisqr.html"));
+});
 
 exports.app = functions.https.onRequest(app);

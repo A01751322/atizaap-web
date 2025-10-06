@@ -15,7 +15,7 @@
                 const mount = document.getElementById('navbar-placeholder');
                 try {
                 // cache-buster para evitar versiones viejas en escritorio
-                const res = await fetch('../partials/navbar.html?v=' + Date.now());
+                const res = await fetch('/partials/navbarmerchant.html?v=' + Date.now());
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const html = await res.text();
                 mount.innerHTML = html;

@@ -23,12 +23,19 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
+// --- ---------------------------------- ---
 // --- Rutas para la sección "web-admins" ---
+// --- ---------------------------------- ---
+
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'web-admins', 'inicio.html'));
 });
 
+
+// --- ------------------------------------ ---
 // --- Rutas para la sección "web-merchant" ---
+// --- ------------------------------------ ---
+
 app.get('/merchant', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'web-merchant', 'inicio.html'));
 });
