@@ -28,9 +28,21 @@ app.get("/register", (req, res) => {
 // ------ Rutas para la sección "web-admins" -------
 // ------ ---------------------------------- ------
 
+// --- Ruta principal ---
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-admins", "inicio.html"));
 });
+
+// --- Ruta datos ---
+app.get("/admin/datos", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-admins", "datos.html"));
+});
+
+// --- Ruta principal ---
+app.get("/admin/ajustes", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "web-admins", "ajustes.html"));
+});
+
 
 // ------ ------------------------------------ ------
 // ------ Rutas para la sección "web-merchant" ------
