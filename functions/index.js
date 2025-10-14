@@ -24,9 +24,14 @@ app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "register.html"));
 });
 
-// ------ ---------------------------------- ------
+// Ruta para iniciar sesión
+app.get("/iniciar-sesion", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "login.html"));
+});
+
+// ------ ---------------------------------- -------
 // ------ Rutas para la sección "web-admins" -------
-// ------ ---------------------------------- ------
+// ------ ---------------------------------- -------
 
 // --- Ruta principal ---
 app.get("/admin", (req, res) => {
@@ -38,11 +43,10 @@ app.get("/admin/datos", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-admins", "datos.html"));
 });
 
-// --- Ruta principal ---
+// --- Ruta ajustes ---
 app.get("/admin/ajustes", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-admins", "ajustes.html"));
 });
-
 
 // ------ ------------------------------------ ------
 // ------ Rutas para la sección "web-merchant" ------

@@ -1,0 +1,55 @@
+<!-- ------------------------------ -->
+<!-- ------ Inicio de sesión ------ -->
+<!-- ------------------------------ -->
+
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+        <link rel="stylesheet" href="/css/styles.css">
+    </head>
+    <body class="pt-20 min-h-screen bg-gray-50">
+        <!-- Contenido de Inicio -->
+        <main id="page-content">
+            <section class="bg-gray-50 py-10 md:py-14">
+                <div class="flex flex-col items-center justify-start px-6 py-10 mx-auto md:py-14">
+                    <a href="#" class="flex items-center mb-4 text-2xl font-semibold text-gray-900">
+                        <img class="w-auto h-24 mr-2" src="../images/logo.png" alt="logo">   
+                    </a>
+                    <div class="auth-card w-full bg-gray-200 rounded-lg shadow md:mt-0">
+                        <div class="p-6 space-y-4 sm:p-6">
+                            <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl">
+                                Inicia sesión en tu cuenta
+                            </h1>
+                            <form class="space-y-4 md:space-y-6" action="#">
+                                <div>
+                                    <label for="email" class="block mb-2 text-sm font-medium text-gray-900">
+                                        Tu correo
+                                    </label>
+                                    <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@company.com" required="">
+                                </div>
+                                <div>
+                                    <label for="password" class="block mb-2 text-sm font-medium text-gray-900">
+                                        Contraseña
+                                    </label>
+                                    <input type="password" name="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required="">
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <a href="#" class="text-sm font-medium text-primary-600 hover:underline">
+                                        ¿Olvidaste tu contraseña?
+                                    </a>
+                                </div>
+                                <button type="submit" class="w-full text-white bg-blue-800 hover:bg-blue-900 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                                    Sign in
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </body>
+    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+</html>
