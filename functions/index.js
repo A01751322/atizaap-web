@@ -87,4 +87,4 @@ app.get("/merchant/registrar-qr", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "web-merchant", "regisqr.html"));
 });
 
-exports.app = functions.https.onRequest(app);
+module.exports.app = functions.https.onRequest(app);

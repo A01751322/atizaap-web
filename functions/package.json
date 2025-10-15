@@ -15,8 +15,8 @@
   "main": "index.js",
   "dependencies": {
     "express": "^5.1.0",
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1",
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.5.0",
     "flowbite": "^3.1.2",
     "serve": "^14.2.5"
   },
