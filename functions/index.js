@@ -1,4 +1,3 @@
-// 1. Requerir los módulos necesarios
 const functions = require("firebase-functions");
 const express = require("express");
 const path = require("path");
@@ -8,8 +7,35 @@ const path = require("path");
 const app = express();
 
 // 3. Middleware para servir archivos estáticos (CSS, Imágenes, etc.)
-// ¡Esto no cambia! Sigue apuntando a tu carpeta 'public'.
 app.use(express.static("public"));
+
+const expressStatic = require("express").static; // reuse express static
+app.use("/static", expressStatic(path.join(__dirname, "static")));
+
+// Security headers (CSP) for Express responses (admin/merchant views)
+app.use((req, res, next) => {
+  res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://challenges.cloudflare.com",
+        "script-src-elem 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://challenges.cloudflare.com",
+        "script-src-attr 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+        "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+        "style-src-attr 'self' 'unsafe-inline'",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: https:",
+        "frame-src https://challenges.cloudflare.com https://www.google.com https://www.youtube.com",
+        "connect-src 'self' https://challenges.cloudflare.com https://us-central1-atizaap-web-v1.cloudfunctions.net",
+        "form-action 'self'",
+      ].join("; "),
+  );
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
 
 // 4. Definir las rutas para TUS PÁGINAS HTML
 // ----------------------------------------------------
@@ -20,7 +46,7 @@ app.get("/", (req, res) => {
 });
 
 // Ruta para la página de negocios aliados
-app.get("/negocio-aliados", (req, res) => {
+app.get("/negocios-aliados", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "negocios.html"));
 });
 
@@ -93,5 +119,8 @@ app.get("/merchant/registrar-qr", (req, res) => {
   res.sendFile(
       path.join(__dirname, "views", "web-merchant", "registrarqr.html"));
 });
+
+const {solicitudesNegocios} = require("./api/sendMail");
+module.exports.solicitudesNegocios = solicitudesNegocios;
 
 module.exports.app = functions.https.onRequest(app);

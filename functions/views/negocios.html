@@ -90,7 +90,8 @@
             <h2 class="text-xl font-bold">Envía tu solicitud</h2>
             <p class="mt-1 text-sm text-gray-500">Tiempo de respuesta estimado: 3–5 días hábiles.</p>
 
-            <form id="ally-form" action="/api/solicitudes-negocios" method="POST" enctype="multipart/form-data" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Si se requiere subir archivos, se cambiará a multipart y se manejará con Multer/Cloud Storage más adelante -->
+            <form id="ally-form" action="/api/solicitudes-negocios" method="POST" accept-charset="UTF-8" class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
                 <!-- Honeypot (anti-spam) -->
                 <div class="hidden">
                 <label>Deja este campo vacío</label>
