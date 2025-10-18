@@ -19,6 +19,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
+// Ruta para la página de negocios aliados
+app.get("/negocio-aliados", (req, res) => {
+  res.sendFile(path.join(__dirname, "views", "negocios.html"));
+});
+
 // Ruta para la página de registro
 app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "register.html"));
@@ -74,7 +79,8 @@ app.get("/merchant/ajustes", (req, res) => {
 
 // --- Ruta Ajustes equipo ---
 app.get("/merchant/ajustes-equipos", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "web-merchant", "ajusteseq.html"));
+  res.sendFile(
+      path.join(__dirname, "views", "web-merchant", "ajustesequipo.html"));
 });
 
 // --- Ruta registrar ---
@@ -84,7 +90,8 @@ app.get("/merchant/registrar", (req, res) => {
 
 // --- Ruta registrar Qr ---
 app.get("/merchant/registrar-qr", (req, res) => {
-  res.sendFile(path.join(__dirname, "views", "web-merchant", "regisqr.html"));
+  res.sendFile(
+      path.join(__dirname, "views", "web-merchant", "registrarqr.html"));
 });
 
 module.exports.app = functions.https.onRequest(app);
