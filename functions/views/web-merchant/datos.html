@@ -8,7 +8,11 @@
     </head>
     <body class="pt-14">
     <!--Placeholder de navbar -->
-        <div id="navbar-placeholder"></div> 
+        <div id="navbar-placeholder"
+            data-partial="/partials/navbarmerchant.html"
+            data-content-id="page-content"
+            data-slot-selector="#content-slot"
+            data-fallback-selector=".border-dashed.rounded-lg"></div>
     <!-- Script Placeholder de navbar y tokenización -->
         <script>
             document.addEventListener('DOMContentLoaded', async () => {
@@ -87,6 +91,7 @@
 
             </script>
         </main>
+        <script defer src="/static/merchant/navbar.js"></script>
     </body>
     <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>

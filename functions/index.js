@@ -10,7 +10,7 @@ const app = express();
 app.use(express.static("public"));
 
 const expressStatic = require("express").static; // reuse express static
-app.use("/static", expressStatic(path.join(__dirname, "static")));
+app.use("/api", expressStatic(path.join(__dirname, "api")));
 
 // Security headers (CSP) for Express responses (admin/merchant views)
 app.use((req, res, next) => {
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
         "frame-src https://challenges.cloudflare.com https://www.google.com https://www.youtube.com",
-        "connect-src 'self' https://challenges.cloudflare.com https://us-central1-atizaap-web-v1.cloudfunctions.net",
+        "connect-src 'self' https://challenges.cloudflare.com https://us-central1-atizaap-web-v1.cloudfunctions.net https://cdn.jsdelivr.net",
         "form-action 'self'",
       ].join("; "),
   );
@@ -120,7 +120,7 @@ app.get("/merchant/registrar-qr", (req, res) => {
       path.join(__dirname, "views", "web-merchant", "registrarqr.html"));
 });
 
-const {solicitudesNegocios} = require("./api/sendMail");
+const {solicitudesNegocios} = require("./static/sendMail");
 module.exports.solicitudesNegocios = solicitudesNegocios;
 
 module.exports.app = functions.https.onRequest(app);

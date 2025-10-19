@@ -1,136 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
-    </head>
-    <body class="pt-14">
-    <!--Placeholder de navbar -->
-        <div id="navbar-placeholder"></div> 
-    <!-- Script Placeholder de navbar y tokenización -->
-        <script>
-            document.addEventListener('DOMContentLoaded', async () => {
-                const mount = document.getElementById('navbar-placeholder');
-                try {
-                // cache-buster para evitar versiones viejas en escritorio
-                const res = await fetch('/partials/navbarmerchant.html?v=' + Date.now());
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const html = await res.text();
-                mount.innerHTML = html;
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+  </head>
+  <body class="pt-14">
+  <!--Placeholder de navbar -->
+    <div id="navbar-placeholder"
+      data-partial="/partials/navbarmerchant.html"
+      data-content-id="page-content"
+      data-slot-selector="#content-slot"
+      data-fallback-selector=".border-dashed.rounded-lg"></div> 
+  <!-- Script Placeholder de navbar y tokenización -->
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+        const mount = document.getElementById('navbar-placeholder');
+        try {
+        // cache-buster para evitar versiones viejas en escritorio
+        const res = await fetch('/partials/navbarmerchant.html?v=' + Date.now());
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const html = await res.text();
+        mount.innerHTML = html;
 
-                // Mover el contenido de la página dentro del recuadro con líneas
-                const content = document.getElementById('page-content');
-                let slot = mount.querySelector('#content-slot');
+        // Mover el contenido de la página dentro del recuadro con líneas
+        const content = document.getElementById('page-content');
+        let slot = mount.querySelector('#content-slot');
 
-                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
-                if (!slot) {
-                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
-                    if (dashed) {
-                    slot = document.createElement('div');
-                    slot.id = 'content-slot';
-                    dashed.appendChild(slot);
-                    }
-                }
+        // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
+        if (!slot) {
+          const dashed = mount.querySelector('.border-dashed.rounded-lg');
+          if (dashed) {
+          slot = document.createElement('div');
+          slot.id = 'content-slot';
+          dashed.appendChild(slot);
+          }
+        }
 
-                if (slot && content) {
-                    slot.appendChild(content);
-                } else {
-                    console.warn('No se encontró content-slot ni contenido para mover');
-                }
+        if (slot && content) {
+            slot.appendChild(content);
+        } else {
+            console.warn('No se encontró content-slot ni contenido para mover');
+        }
 
-                // Cargar tabs y activar la pestaña correspondiente (forzar por data-active-tab)
-                const tabsMount = document.getElementById('tabs-placeholder');
-                if (tabsMount) {
-                    const tRes = await fetch('/partials/tabsregistrar.html?v=' + Date.now());
-                    if (!tRes.ok) throw new Error('HTTP ' + tRes.status);
-                    tabsMount.innerHTML = await tRes.text();
+        // Cargar tabs y activar la pestaña correspondiente (forzar por data-active-tab)
+        const tabsMount = document.getElementById('tabs-placeholder');
+        if (tabsMount) {
+          const tRes = await fetch('/partials/tabsregistrar.html?v=' + Date.now());
+          if (!tRes.ok) throw new Error('HTTP ' + tRes.status);
+          tabsMount.innerHTML = await tRes.text();
 
-                    const mano = tabsMount.querySelector('[data-tab="mano"]');
-                    const qr  = tabsMount.querySelector('[data-tab="qr"]');
+          const mano = tabsMount.querySelector('[data-tab="mano"]');
+          const qr  = tabsMount.querySelector('[data-tab="qr"]');
 
-                    const reset = () => {
-                        [mano, qr].forEach(a => {
-                        if (!a) return;
-                        a.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
-                        a.classList.add('border-transparent');
-                        a.removeAttribute('aria-current');
-                        });
-                    };
-                    const setActive = (el) => {
-                        if (!el) return;
-                        el.classList.add('text-blue-600','border-b-2','border-blue-600','active','dark:text-blue-500','dark:border-blue-500');
-                        el.classList.remove('border-transparent');
-                        el.setAttribute('aria-current','page');
-                    };
-                    const setInactive = (el) => {
-                        if (!el) return;
-                        el.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
-                        el.classList.add('border-transparent');
-                        el.removeAttribute('aria-current');
-                    };
-
-                    const desired = document.getElementById('page-content')?.dataset.activeTab || 'mano';
-                    const reapply = () => {
-                        reset();
-                        if (desired === 'qr') {
-                        setActive(qr);
-                        setInactive(mano);
-                        } else {
-                        setActive(mano);
-                        setInactive(qr);
-                        }
-                    };
-
-                    reapply();
-                    requestAnimationFrame(reapply);
-                }
-
-
-                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
-                if (window.initFlowbite) window.initFlowbite();
-                } catch (err) {
-                console.error('Error al cargar la barra de navegación:', err);
-                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
-                }
+          const reset = () => {
+            [mano, qr].forEach(a => {
+            if (!a) return;
+            a.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
+            a.classList.add('border-transparent');
+            a.removeAttribute('aria-current');
             });
-        </script>
-        <main id="page-content" data-active-tab="qr">
-            <h1 class="text-3xl font-bold">Registro QR</h1>
-            <div id="tabs-placeholder" class="mb-4"></div>
-            <section id="qr-section" class="space-y-4">
-    <div class="flex items-center gap-3">
-      <label for="camera-select" class="text-sm font-medium">Cámara</label>
-      <select id="camera-select" class="border rounded px-3 py-2 text-sm"></select>
+          };
+          const setActive = (el) => {
+            if (!el) return;
+            el.classList.add('text-blue-600','border-b-2','border-blue-600','active','dark:text-blue-500','dark:border-blue-500');
+            el.classList.remove('border-transparent');
+            el.setAttribute('aria-current','page');
+          };
+          const setInactive = (el) => {
+            if (!el) return;
+            el.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
+            el.classList.add('border-transparent');
+            el.removeAttribute('aria-current');
+          };
 
-      <button id="start-scan" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 text-sm">Iniciar</button>
-      <button id="stop-scan" class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700 text-sm" disabled>Detener</button>
-      <label class="px-4 py-2 text-white bg-gray-800 rounded hover:bg-gray-900 text-sm cursor-pointer">
-        Tomar foto
-        <input id="qr-file" type="file" accept="image/*" capture="environment" class="hidden">
-      </label>
-    </div>
+          const desired = document.getElementById('page-content')?.dataset.activeTab || 'mano';
+          const reapply = () => {
+            reset();
+            if (desired === 'qr') {
+            setActive(qr);
+            setInactive(mano);
+            } else {
+            setActive(mano);
+            setInactive(qr);
+            }
+          };
 
-    <div class="relative w-full max-w-md aspect-[3/4] bg-gray-900 rounded overflow-hidden">
-      <video id="qr-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+            reapply();
+            requestAnimationFrame(reapply);
+          }
 
-      <!-- Overlay de guía -->
-      <div class="pointer-events-none absolute inset-0 grid place-items-center">
-        <div class="w-3/4 aspect-square border-2 border-green-400/80 rounded-md"></div>
-      </div>
-    </div>
 
-    <div class="space-y-1">
-      <p class="text-sm text-gray-600">Resultado</p>
-      <input id="qr-result" type="text" class="w-full border rounded px-3 py-2" placeholder="Aún no hay lectura..." readonly>
-      <div class="text-xs text-gray-500" id="qr-hints"></div>
-    </div>
-  </section>
-        </main>
-    </body>
-    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
-<script>
+          // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
+          if (window.initFlowbite) window.initFlowbite();
+          } catch (err) {
+          console.error('Error al cargar la barra de navegación:', err);
+          mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
+          }
+        });
+    </script>
+      <main id="page-content" data-active-tab="qr">
+        <h1 class="text-3xl font-bold">Registro QR</h1>
+        <div id="tabs-placeholder" class="mb-4"></div>
+        <section id="qr-section" class="space-y-4">
+          <div class="flex items-center gap-3">
+            <label for="camera-select" class="text-sm font-medium">Cámara</label>
+            <select id="camera-select" class="border rounded px-3 py-2 text-sm"></select>
+
+            <button id="start-scan" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 text-sm">Iniciar</button>
+            <button id="stop-scan" class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700 text-sm" disabled>Detener</button>
+            <label class="px-4 py-2 text-white bg-gray-800 rounded hover:bg-gray-900 text-sm cursor-pointer">
+              Tomar foto
+              <input id="qr-file" type="file" accept="image/*" capture="environment" class="hidden">
+            </label>
+          </div>
+
+          <div class="relative w-full max-w-md aspect-[3/4] bg-gray-900 rounded overflow-hidden">
+            <video id="qr-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+
+            <!-- Overlay de guía -->
+            <div class="pointer-events-none absolute inset-0 grid place-items-center">
+              <div class="w-3/4 aspect-square border-2 border-green-400/80 rounded-md"></div>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <p class="text-sm text-gray-600">Resultado</p>
+            <input id="qr-result" type="text" class="w-full border rounded px-3 py-2" placeholder="Aún no hay lectura..." readonly>
+            <div class="text-xs text-gray-500" id="qr-hints"></div>
+          </div>
+        </section>
+      </main>
+      <script defer src="/static/merchant/navbar.js"></script>
+  </body>
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+  <script>
     (function () {
       // Aviso si no es contexto seguro (HTTPS o localhost)
       function warn(msg) {

@@ -21,7 +21,11 @@
     </head>
     <body class="pt-14">
     <!--Placeholder de navbar -->
-        <div id="navbar-placeholder"></div> 
+        <div id="navbar-placeholder"
+            data-partial="/partials/navbarmerchant.html"
+            data-content-id="page-content"
+            data-slot-selector="#content-slot"
+            data-fallback-selector=".border-dashed.rounded-lg"></div> 
     <!-- Script Placeholder de navbar y tokenización -->
         <script>
             document.addEventListener('DOMContentLoaded', async () => {
@@ -152,6 +156,7 @@
             </div>
         </main>
     </body>
+    <script defer src="/static/merchant/navbar.js"></script>
     <script>
         (function() {
             const iframe = document.getElementById('gmap-embed');
@@ -184,12 +189,13 @@
             }
 
             // 3) Fetch al backend (JSON: { address: "..." })
-            fetch('/api/merchant/location', { headers: { 'Accept': 'application/json' }})
+            fetch('/static/merchant/location', { headers: { 'Accept': 'application/json' }})
                 .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(data => setMap(data.address || data.direccion || data.addr))
                 .catch(() => {});
             */
         })();
     </script>
+    
     <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>
