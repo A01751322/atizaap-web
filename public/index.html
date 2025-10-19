@@ -6,27 +6,7 @@
     <title>Beneficio Joven Atizapán</title>
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              bjviolet: {
-                50: '#f6f4fb', 100: '#ede9f6', 200: '#ddd3ee', 300: '#c0aee0', 400: '#9e80cf', 500: '#7f58c1', 600: '#6a43ad', 700: '#5a3791', 800: '#4a2e76', 900: '#3b265f'
-              },
-              bjblue: '#79a8c7',
-              bjrose: '#e69aa6'
-            },
-            fontFamily: {
-              sans: ["Poppins", "Inter", "Nunito", "ui-sans-serif", "system-ui"]
-            },
-            backgroundImage: {
-              paper: "url('https://images.unsplash.com/photo-1544989164-31dc3c645987?q=80&w=1200&auto=format&fit=crop')"
-            }
-          }
-        }
-      }
-    </script>
+    <script src="/js/tw-config.js"></script>
     <!-- Flowbite CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.5.1/flowbite.min.css" rel="stylesheet" />
     <!-- Meta -->
@@ -41,7 +21,7 @@
   <body class="font-sans text-gray-800">
     <!-- ===== NAVBAR ===== -->
     <header class="sticky top-0 z-50 bg-white/80 backdrop-blur border-b">
-      <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <nav class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
           <a href="#inicio" class="flex items-center gap-3">
             <img src="/images/logob.png" alt="Beneficio Joven" class="h-9 w-9 rounded-xl object-contain" />
@@ -54,13 +34,13 @@
             <span class="sr-only">Abrir menú</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <div class="hidden w-full md:block md:w-auto" id="navbar">
-            <ul class="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 text-sm">
-              <li><a href="#programa" class="hover:text-bjviolet-700">Conoce el programa</a></li>
-              <li><a href="#catalogo" class="hover:text-bjviolet-700">Descuentos</a></li>
-              <li><a href="/negocios-aliados" class="hover:text-bjviolet-700">Negocios aliados</a></li>
-              <li><a href="/iniciar-sesion" class="hover:text-bjviolet-700">Inicia Sesión</a></li>
-              <li><a href="#contacto" class="hover:text-bjviolet-700">Contacto</a></li>
+          <div id="navbar" class="hidden absolute left-0 right-0 top-16 z-40 mx-0 bg-white/95 backdrop-blur border-y shadow p-4 md:static md:z-auto md:block md:w-auto md:bg-transparent md:border-0 md:shadow-none md:p-0">
+            <ul class="flex flex-col gap-2 text-sm md:flex-row md:items-center md:gap-6">
+              <li><a href="#programa" class="hover:text-bjviolet-700 px-2 py-2 rounded-lg">Conoce el programa</a></li>
+              <li><a href="#catalogo" class="hover:text-bjviolet-700 px-2 py-2 rounded-lg">Descuentos</a></li>
+              <li><a href="/negocios-aliados" class="hover:text-bjviolet-700 px-2 py-2 rounded-lg">Negocios aliados</a></li>
+              <li><a href="/iniciar-sesion" class="hover:text-bjviolet-700 px-2 py-2 rounded-lg">Inicia Sesión</a></li>
+              <li><a href="#contacto" class="hover:text-bjviolet-700 px-2 py-2 rounded-lg">Contacto</a></li>
               <li>
                 <a href="#solicita" class="inline-flex items-center rounded-xl bg-gradient-to-tr from-[#3B65A0] via-[#5C52A3] to-[#6E46A8] px-5 py-3 text-sm font-semibold text-white shadow transition-colors hover:from-[#355B8E] hover:via-[#5B45A0] hover:to-[#744CAF] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5C52A3]">
                   Solicita tu tarjeta
@@ -86,7 +66,7 @@
             <p class="mt-4 text-base sm:text-lg text-gray-600 max-w-xl">Beneficio Joven es una tarjeta de descuentos para jóvenes de Atizapán. Descubre beneficios exclusivos en entretenimiento, comida, salud, belleza, educación, moda y servicios.</p>
             <div class="mt-6 flex items-center gap-3">
               <a href="#catalogo" class="inline-flex items-center rounded-xl ring-gradient bg-white px-5 py-3 text-sm font-semibold shadow hover:shadow-md">Conoce los descuentos</a>
-              <a href="#programa" class="inline-flex items-center rounded-xl bg-bjviolet-600 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-bjviolet-700">¿Cómo funciona?</a>
+              <a href="#programa" class="inline-flex items-center rounded-xl bg-gradient-to-tr from-[#3B65A0] via-[#5C52A3] to-[#6E46A8] px-5 py-3 text-sm font-semibold text-white shadow transition-colors hover:from-[#355B8E] hover:via-[#5B45A0] hover:to-[#744CAF] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5C52A3]">¿Cómo funciona?</a>
             </div>
             <div class="mt-8 flex items-center gap-8 opacity-80">
               <img alt="Six Flags" class="h-10" src="https://sf-static.sixflags.com/wp-content/uploads/sfmx.png"/>
@@ -445,7 +425,8 @@
             <h3 class="text-3xl font-extrabold">Contacto</h3>
             <p class="mt-2 text-gray-600">Dirección de la Juventud de Atizapán de Zaragoza</p>
             <div class="mt-4 text-sm text-gray-700 space-y-1">
-              <p>Av. Ejemplo 123, Atizapán Centro, Edo. Méx.</p>
+              <p>Blvd. Adolfo López Mateos 91, El Potrero</p>
+              <p>52875 Cd. López Mateos, Méx.</p>
               <p>Tel. 55 0000 0000</p>
               <p>juventud@atizapan.gob.mx</p>
             </div>
@@ -455,7 +436,7 @@
             </div>
           </div>
           <div class="rounded-2xl overflow-hidden shadow ring-1 ring-gray-200">
-            <iframe title="Mapa" class="w-full h-80" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3762.5306!2d-99.25!3d19.43!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z!5e0!3m2!1ses-419!2smx!4v1700000000000"></iframe>
+            <iframe title="Mapa" class="w-full h-80" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3759.957632914073!2d-99.2352662!3d19.5434324!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d21cdf9e9ff8ad%3A0x1de1def19762ecdf!2sBlvd.%20Adolfo%20Lopez%20Mateos%2091%2C%2052987%20El%20Potrero%2C%20M%C3%A9x.!5e0!3m2!1ses!2smx!4v1760916491381!5m2!1ses!2smx"></iframe>
           </div>
         </div>
       </div>
@@ -481,53 +462,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.5.1/flowbite.min.js"></script>
 
     <!-- Buscador + Filtros -->
-    <script>
-      const searchInput = document.getElementById('search');
-      const cards = Array.from(document.querySelectorAll('#cards .card'));
-      const pills = document.getElementById('pills');
-      let activeFilter = 'all';
-
-      function applyFilters() {
-        const q = (searchInput.value || '').toLowerCase().trim();
-        cards.forEach(card => {
-          const title = card.dataset.title;
-          const cat = card.dataset.category;
-          const matchesText = !q || title.includes(q);
-          const matchesCat = activeFilter === 'all' || activeFilter === cat;
-          card.style.display = (matchesText && matchesCat) ? '' : 'none';
-        });
-      }
-
-      searchInput.addEventListener('input', applyFilters);
-
-      pills.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-pill]');
-        if (!btn) return;
-        activeFilter = btn.dataset.pill;
-        // estilos
-        pills.querySelectorAll('button').forEach(b => b.className = 'px-3 py-1 rounded-full text-sm font-medium bg-white ring-1 ring-gray-200');
-        btn.className = 'px-3 py-1 rounded-full text-sm font-medium bg-bjviolet-600 text-white';
-        applyFilters();
-      });
-
-      // Accesos desde la grilla de categorías
-      document.querySelectorAll('[data-filter]').forEach(el => {
-        el.addEventListener('click', (e) => {
-          const value = el.dataset.filter;
-          activeFilter = value;
-          // Mover a la sección catálogo
-          setTimeout(() => {
-            // Resaltar el pill correcto
-            const target = pills.querySelector(`button[data-pill="${value}"]`);
-            if (target) {
-              pills.querySelectorAll('button').forEach(b => b.className = 'px-3 py-1 rounded-full text-sm font-medium bg-white ring-1 ring-gray-200');
-              target.className = 'px-3 py-1 rounded-full text-sm font-medium bg-bjviolet-600 text-white';
-            }
-            applyFilters();
-          }, 50);
-        });
-      });
-    </script>
-
+    <script src="/static/home.js" defer></script>
   </body>
 </html>

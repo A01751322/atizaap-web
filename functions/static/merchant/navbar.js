@@ -119,4 +119,10 @@
       }, 100);
     }
   });
+  // 5) Oculta el loader al finalizar
+  const loader = document.getElementById("loader-overlay");
+  if (loader) {
+    loader.classList.add("hidden");
+    setTimeout(() => loader.remove(), 300);
+  }
 })();

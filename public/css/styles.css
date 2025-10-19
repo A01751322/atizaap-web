@@ -62,3 +62,11 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+#loader-overlay {
+  transition: opacity 0.3s ease;
+}
+#loader-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}

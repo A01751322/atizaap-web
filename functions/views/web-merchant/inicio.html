@@ -11,6 +11,12 @@
       <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body class="pt-14">
+    <!-- Pantalla de carga -->
+    <div id="loader-overlay"
+      class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+      <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
+      <p class="text-gray-600 font-medium">Cargando panel...</p>
+    </div>
     <!-- Placeholder de navbar -->
     <div id="navbar-placeholder"
       data-partial="/partials/navbarmerchant.html"
@@ -76,5 +82,6 @@
     </main>
     <script defer src="/static/merchant/navbar.js"></script>
   </body>
+  <!-- include:navbarmerchant -->
   <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>
