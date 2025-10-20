@@ -10,6 +10,11 @@
  */
 (() => {
   "use strict";
+  // --- Global guard: prevent double boot ---
+  if (window.__NAVBAR_MERCHANT_BOOTED__) {
+    return;
+  }
+  window.__NAVBAR_MERCHANT_BOOTED__ = true;
   const __SCRIPT_STARTED_AT = performance.now();
 
   /**
@@ -38,6 +43,10 @@
       console.error("[navbar] No se encontró #navbar-placeholder");
       return;
     }
+
+    // Avoid running twice on the same mount
+    if (mount.getAttribute("data-navbar-init") === "1") return;
+    mount.setAttribute("data-navbar-init", "1");
 
     // 2) Parámetros desde atributos
     const partial =
@@ -137,6 +146,21 @@
     const tabsMount = document.getElementById("tabs-placeholder");
     if (!tabsMount) return;
 
+    // Global guard for tabs: avoid double boot on same page load
+    if (window.__NAVBAR_TABS_BOOTED__) {
+      // eslint-disable-next-line no-console
+      console.info("[tabs] Skip: already booted once");
+      return;
+    }
+    window.__NAVBAR_TABS_BOOTED__ = true;
+
+    // Return early if already rendered (cross-run safety)
+    if (tabsMount.getAttribute("data-tabs-rendered") === "1") return;
+
+    // Avoid duplicate tabs injection on the same placeholder
+    if (tabsMount.getAttribute("data-tabs-init") === "1") return;
+    tabsMount.setAttribute("data-tabs-init", "1");
+
     /**
      * Descarga un partial HTML con cache‑buster.
      * @param {string} url
@@ -172,9 +196,14 @@
       }
     }
 
+    // Limpia cualquier contenido previo del placeholder
+    // (por si algún build/SSR dejó algo)
+    while (tabsMount.firstChild) tabsMount.removeChild(tabsMount.firstChild);
+
     // 2) Cargar con fallback cruzado (sin typos)
     try {
       tabsMount.innerHTML = await tryFetch(partialToLoad);
+      tabsMount.setAttribute("data-tabs-rendered", "1");
       console.info("[tabs] Cargado:", partialToLoad);
     } catch (_e) {
       const alt = partialToLoad.includes("registrar") ?
@@ -182,6 +211,7 @@
         "/partials/tabsregistrar.html";
       try {
         tabsMount.innerHTML = await tryFetch(alt);
+        tabsMount.setAttribute("data-tabs-rendered", "1");
         console.info("[tabs] Fallback:", alt);
       } catch (e2) {
         console.error("[tabs] Error al cargar tabs:", e2);

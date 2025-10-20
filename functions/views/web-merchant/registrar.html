@@ -8,8 +8,7 @@
     </head>
     <body class="pt-14">
         <!-- Pantalla de carga -->
-        <div id="loader-overlay"
-            class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
             <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
             <p class="text-gray-600 font-medium">Cargando panel...</p>
         </div>
@@ -21,8 +20,8 @@
             data-fallback-selector=".border-dashed.rounded-lg">
         </div>
         <main id="page-content" data-active-tab="mano">
-            <h1 class="text-3xl font-bold">Registro a mano</h1>
             <div id="tabs-placeholder" class="mb-4"></div>
+            <h1 class="text-3xl font-bold">Registro a mano</h1>
             
             <!-- campo para ingresar el numero de tarjeta -->
             <label for="chat" class="block mb-2 text-sm font-medium text-gray-900">Ingresa el número de la tarjeta</label>
@@ -41,7 +40,7 @@
         </main>
         <script defer src="/static/merchant/navbar.js"></script>
         <script defer src="/static/merchant/registrar.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     </body>
     <!-- include:navbarmerchant -->
-    <!-- include:tabsregistrar -->
 </html>
