@@ -4,8 +4,15 @@
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+        <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body class="pt-14">
+        <!-- Pantalla de carga -->
+        <div id="loader-overlay"
+            class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+            <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
+            <p class="text-gray-600 font-medium">Cargando panel...</p>
+        </div>
         <!-- Placeholder de navbar -->
         <div
             id="navbar-placeholder"
@@ -123,8 +130,8 @@
 
         <!-- JS de esta vista (navbar + estatus) -->
         <script defer src="/static/merchant/promocion.js"></script>
-
-        <!-- Flowbite -->
         <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+        <script defer src="/static/merchant/navbar.js"></script>
     </body>
+    <!-- include:navbarmerchant -->
 </html>

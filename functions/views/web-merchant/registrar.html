@@ -4,107 +4,28 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+        <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body class="pt-14">
-    <!--Placeholder de navbar -->
+        <!-- Pantalla de carga -->
+        <div id="loader-overlay"
+            class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+            <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
+            <p class="text-gray-600 font-medium">Cargando panel...</p>
+        </div>
+        <!--Placeholder de navbar -->
         <div id="navbar-placeholder"
             data-partial="/partials/navbarmerchant.html"
             data-content-id="page-content"
             data-slot-selector="#content-slot"
-            data-fallback-selector=".border-dashed.rounded-lg"></div>
-    <!-- Script Placeholder de navbar y tokenización -->
-        <script>
-            document.addEventListener('DOMContentLoaded', async () => {
-                const mount = document.getElementById('navbar-placeholder');
-                try {
-                // cache-buster para evitar versiones viejas en escritorio
-                const res = await fetch('/partials/navbarmerchant.html?v=' + Date.now());
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const html = await res.text();
-                mount.innerHTML = html;
-
-                // Mover el contenido de la página dentro del recuadro con líneas
-                const content = document.getElementById('page-content');
-                let slot = mount.querySelector('#content-slot');
-
-                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
-                if (!slot) {
-                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
-                    if (dashed) {
-                    slot = document.createElement('div');
-                    slot.id = 'content-slot';
-                    dashed.appendChild(slot);
-                    }
-                }
-
-                if (slot && content) {
-                    slot.appendChild(content);
-                } else {
-                    console.warn('No se encontró content-slot ni contenido para mover');
-                }
-
-                // Cargar tabs y activar la pestaña correspondiente (forzar por data-active-tab)
-                const tabsMount = document.getElementById('tabs-placeholder');
-                if (tabsMount) {
-                    const tRes = await fetch('/partials/tabsregistrar.html?v=' + Date.now());
-                    if (!tRes.ok) throw new Error('HTTP ' + tRes.status);
-                    tabsMount.innerHTML = await tRes.text();
-
-                    const mano = tabsMount.querySelector('[data-tab="mano"]');
-                    const qr  = tabsMount.querySelector('[data-tab="qr"]');
-
-                    const reset = () => {
-                        [mano, qr].forEach(a => {
-                        if (!a) return;
-                        a.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
-                        a.classList.add('border-transparent');
-                        a.removeAttribute('aria-current');
-                        });
-                    };
-                    const setActive = (el) => {
-                        if (!el) return;
-                        el.classList.add('text-blue-600','border-b-2','border-blue-600','active','dark:text-blue-500','dark:border-blue-500');
-                        el.classList.remove('border-transparent');
-                        el.setAttribute('aria-current','page');
-                    };
-                    const setInactive = (el) => {
-                        if (!el) return;
-                        el.classList.remove('text-blue-600','border-blue-600','active','dark:text-blue-500','dark:border-blue-500','border-b-2');
-                        el.classList.add('border-transparent');
-                        el.removeAttribute('aria-current');
-                    };
-
-                    const desired = document.getElementById('page-content')?.dataset.activeTab || 'mano';
-                    const reapply = () => {
-                        reset();
-                        if (desired === 'qr') {
-                        setActive(qr);
-                        setInactive(mano);
-                        } else {
-                        setActive(mano);
-                        setInactive(qr);
-                        }
-                    };
-
-                    reapply();
-                    requestAnimationFrame(reapply);
-                }
-
-
-                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
-                if (window.initFlowbite) window.initFlowbite();
-                } catch (err) {
-                console.error('Error al cargar la barra de navegación:', err);
-                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
-                }
-            });
-        </script>
+            data-fallback-selector=".border-dashed.rounded-lg">
+        </div>
         <main id="page-content" data-active-tab="mano">
             <h1 class="text-3xl font-bold">Registro a mano</h1>
             <div id="tabs-placeholder" class="mb-4"></div>
             
             <!-- campo para ingresar el numero de tarjeta -->
-            <label for="businessName" class="block mb-2 text-sm font-medium text-gray-900">Ingresa el número de la tarjeta</label>
+            <label for="chat" class="block mb-2 text-sm font-medium text-gray-900">Ingresa el número de la tarjeta</label>
             <div class="flex items-center px-3 py-2 rounded-lg bg-gray-50">
                 <textarea id="chat" rows="1" class="block mx-4 p-2.5 w-full text-sm text-center text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="xxxx-xxxx-xxxx-xxxx"></textarea>
             </div>
@@ -119,6 +40,8 @@
 
         </main>
         <script defer src="/static/merchant/navbar.js"></script>
+        <script defer src="/static/merchant/registrar.js"></script>
     </body>
-    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <!-- include:navbarmerchant -->
+    <!-- include:tabsregistrar -->
 </html>
