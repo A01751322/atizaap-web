@@ -4,47 +4,23 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+        <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body class="pt-14">
-        <div id="navbar-placeholder"></div>
-        <script>
-            document.addEventListener('DOMContentLoaded', async () => {
-                const mount = document.getElementById('navbar-placeholder');
-                try {
-                // cache-buster para evitar versiones viejas en escritorio
-                const res = await fetch('/partials/navbaradmins.html?v=' + Date.now());
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const html = await res.text();
-                mount.innerHTML = html;
+        <!-- Pantalla de carga -->
+        <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+            <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
+            <p class="text-gray-600 font-medium">Cargando panel...</p>
+        </div>
+        <!-- Placeholder de navbar -->
+        <div id="navbar-placeholder"
+            data-partial="/partials/navbaradmins.html"
+            data-content-id="page-content"
+            data-slot-selector="#content-slot"
+            data-fallback-selector=".border-dashed.rounded-lg">
+        </div>
 
-                // Mover el contenido de la página dentro del recuadro con líneas
-                const content = document.getElementById('page-content');
-                let slot = mount.querySelector('#content-slot');
-
-                // Fallback: si el slot no existe, lo creamos dentro del primer recuadro punteado
-                if (!slot) {
-                    const dashed = mount.querySelector('.border-dashed.rounded-lg');
-                    if (dashed) {
-                    slot = document.createElement('div');
-                    slot.id = 'content-slot';
-                    dashed.appendChild(slot);
-                    }
-                }
-
-                if (slot && content) {
-                    slot.appendChild(content);
-                } else {
-                    console.warn('No se encontró content-slot ni contenido para mover');
-                }
-
-                // Re‑inicializa Flowbite para los elementos añadidos dinámicamente
-                if (window.initFlowbite) window.initFlowbite();
-                } catch (err) {
-                console.error('Error al cargar la barra de navegación:', err);
-                mount.innerHTML = '<div class="fixed w-16 h-screen bg-gray-800 text-white p-4">Error al cargar</div>';
-                }
-            });
-        </script>
+        <!-- Contenido página promociones -->
         <main id="page-content">
             <h1 class="text-3xl font-bold">
                 Ajustes
@@ -230,6 +206,7 @@
                 </div>
             </div>
         </main>
+        <script defer src="/static/admins/navbar.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     </body>
-    <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
 </html>
