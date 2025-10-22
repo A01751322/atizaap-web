@@ -1,6 +1,7 @@
 /* eslint-env browser, es2021 */
 /* eslint-disable max-len, require-jsdoc, brace-style, no-multi-spaces */
 
+// /functions/static/admins/ajustes.js (browser script - no imports)
 // Admins: lista + agregar + editar
 
 const tbody = document.getElementById("admin-tbody");
@@ -19,9 +20,12 @@ const editForm = document.getElementById("edit-admin-form");
 let adminsCache = [];
 let firstLoad = true;
 
-/** MODO DEMO (sin DB) — cambia a false cuando conectes la API real. */
+/**
+ * MODO DEMO (sin DB) — cambia a false cuando conectes la API real.
+ */
 const USE_MOCK = true;
 
+// Datos de ejemplo (administradores)
 const MOCK_ADMINS = [
   {id: 1, nombre: "Mario García", correo: "mario@atizaap.mx", created_at: Date.now() - 1000 * 60 * 60 * 24 * 10},
   {id: 2, nombre: "Ana López",   correo: "ana@atizaap.mx",   created_at: Date.now() - 1000 * 60 * 60 * 24 * 25},
@@ -55,17 +59,17 @@ function closePanel(panelEl) {
   if (!panelEl) return;
   panelEl.classList.add("translate-x-full");
   panelEl.setAttribute("aria-hidden", "true");
+  // Deja que termine la transición si existe
   setTimeout(() => panelEl.setAttribute("hidden", ""), 150);
 }
 
 function render(list) {
-  if (!tbody) {console.warn("[ajustes] Falta #admin-tbody en el HTML; no se puede renderizar."); return;}
   tbody.innerHTML = "";
   if (!list.length) {
-    if (emptyState) emptyState.classList.remove("hidden");
+    emptyState.classList.remove("hidden");
     return;
   }
-  if (emptyState) emptyState.classList.add("hidden");
+  emptyState.classList.add("hidden");
 
   list.forEach((a, i) => {
     const tr = document.createElement("tr");
@@ -96,7 +100,7 @@ function render(list) {
     tbody.appendChild(tr);
   });
 
-  if (typeof window.initFlowbite === "function" && drawer && editPanel) {
+  if (typeof window.initFlowbite === "function") {
     try {window.initFlowbite();} catch (_) {/* noop */}
   }
 }
@@ -121,36 +125,61 @@ async function fetchAdmins() {
     return;
   }
 
-  /* ==== API REAL (ejemplo) ====
-  const params = new URLSearchParams({q, limit: "100"});
-  const res = await fetch(`/api/admin/admins?${params.toString()}`, {headers: {Accept: "application/json"}});
+  /* =================== API REAL (ejemplo) ===================
+  const params = new URLSearchParams({ q, limit: "100" });
+  const res = await fetch(`/api/admin/admins?${params.toString()}`, {
+    headers: { Accept: "application/json" }
+  });
   if (!res.ok) throw new Error(`GET admins ${res.status}`);
-  const data = await res.json(); // {items: [...]}
+  const data = await res.json(); // { items: [...] }
   adminsCache = Array.isArray(data.items) ? data.items : [];
   render(adminsCache);
-  if (firstLoad) {firstLoad = false; loaderOverlay?.classList.add("hidden");}
-  ============================== */
+  if (firstLoad) {
+    firstLoad = false;
+    if (loaderOverlay) loaderOverlay.classList.add("hidden");
+  }
+  ============================================================ */
 }
 
 async function createAdmin(payload) {
   if (USE_MOCK) {
-    const item = {...payload, id: nextId(), created_at: Date.now()};
+    const item = Object.assign({}, payload, {id: nextId(), created_at: Date.now()});
     MOCK_ADMINS.unshift(item);
     return {id: item.id};
   }
-  /* POST /api/admin/admins ... */
+
+  /* =================== API REAL (ejemplo) ===================
+  const res = await fetch(`/api/admin/admins`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`POST admins ${res.status}`);
+  return res.json();
+  ============================================================ */
 }
 
 async function updateAdmin(id, payload) {
   if (USE_MOCK) {
     const idx = MOCK_ADMINS.findIndex((x) => String(x.id) === String(id));
-    if (idx !== -1) MOCK_ADMINS[idx] = {...MOCK_ADMINS[idx], ...payload};
+    if (idx !== -1) {
+      MOCK_ADMINS[idx] = Object.assign({}, MOCK_ADMINS[idx], payload);
+    }
     return {id};
   }
-  /* PATCH /api/admin/admins/:id ... */
+
+  /* =================== API REAL (ejemplo) ===================
+  const res = await fetch(`/api/admin/admins/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`PATCH admin ${res.status}`);
+  return res.json();
+  ============================================================ */
 }
 
-/* ---------- Listeners UI (sin optional chaining) ---------- */
+/* ---------- Listeners UI ---------- */
 
 // Buscar en vivo
 if (searchInput) {
@@ -190,7 +219,10 @@ document.addEventListener("click", (e) => {
 
   if (editForm) {
     editForm.dataset.id = String(item.id);
-    const setV = (elId, val) => {const el = document.getElementById(elId); if (el) el.value = val || "";};
+    const setV = (elId, val) => {
+      const el = document.getElementById(elId);
+      if (el) el.value = val || "";
+    };
     setV("edit-admin-nombre", item.nombre);
     setV("edit-admin-correo", item.correo);
   }
@@ -241,14 +273,8 @@ if (editForm) {
   });
 }
 
-// Primera carga segura
-(function safeReady(run) {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => run(), {once: true});
-  } else {run();}
-})(() => {
-  fetchAdmins().catch((e) => {
-    console.error(e);
-    if (loaderOverlay) loaderOverlay.classList.add("hidden");
-  });
+// Primera carga
+fetchAdmins().catch((e) => {
+  console.error(e);
+  if (loaderOverlay) loaderOverlay.classList.add("hidden");
 });

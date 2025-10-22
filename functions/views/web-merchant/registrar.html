@@ -7,12 +7,10 @@
         <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body class="pt-14">
-        <!-- Pantalla de carga -->
         <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
             <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
             <p class="text-gray-600 font-medium">Cargando panel...</p>
         </div>
-        <!--Placeholder de navbar -->
         <div id="navbar-placeholder"
             data-partial="/partials/navbarmerchant.html"
             data-content-id="page-content"
@@ -21,26 +19,31 @@
         </div>
         <main id="page-content" data-active-tab="mano">
             <div id="tabs-placeholder" class="mb-4"></div>
-            <h1 class="text-3xl font-bold">Registro a mano</h1>
+            <h1 class="text-3xl font-bold">Redimir Oferta (Manual)</h1>
             
-            <!-- campo para ingresar el numero de tarjeta -->
-            <label for="chat" class="block mb-2 text-sm font-medium text-gray-900">Ingresa el número de la tarjeta</label>
-            <div class="flex items-center px-3 py-2 rounded-lg bg-gray-50">
-                <textarea id="chat" rows="1" class="block mx-4 p-2.5 w-full text-sm text-center text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="xxxx-xxxx-xxxx-xxxx"></textarea>
+            <div class="mb-4">
+              <label for="oferta-select" class="block mb-2 text-sm font-medium text-gray-900">1. Selecciona la oferta a redimir</label>
+              <select id="oferta-select" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" disabled>
+                <option value="">Cargando ofertas...</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="card-number-input" class="block mb-2 text-sm font-medium text-gray-900">2. Ingresa el número de tarjeta del cliente</label>
+              <div class="flex items-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-300">
+                  <input type="text" id="card-number-input" rows="1" class="block mx-4 p-2.5 w-full text-sm text-center text-gray-900 bg-white rounded-lg border-0 focus:ring-0" placeholder="xxxx-xxxx-xxxx-xxxx" inputmode="numeric" maxlength="19"/>
+              </div>
             </div>
             
-            <!-- boton de cancelar -->
-            <button id="generateBtn" class="mt-4 text-black border-1 border-gray-500 bg-white hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Cancelar</button>
-            <div id="qrcode" class="mt-4 p-4 border border-gray-800 rounded-lg bg-gray-50 hidden"></div>
+            <div class="flex flex-col sm:flex-row gap-2 mt-4">
+                <button id="cancelBtn" class="flex-1 text-gray-700 border border-gray-300 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Limpiar</button>
+                <button id="submitBtn" class="flex-1 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Redimir</button>
+            </div>
             
-            <!-- boton de registrar -->
-            <button id="submitBtn" class="mt-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Registrar</button>
-            <div id="response" class="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50 hidden"></div>
+            <div id="response" class="mt-4 p-4 border rounded-lg hidden"></div>
 
         </main>
         <script defer src="/static/merchant/navbar.js"></script>
-        <script defer src="/static/merchant/registrar.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+        <script defer src="/static/merchant/redimirManual.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
     </body>
-    <!-- include:navbarmerchant -->
 </html>

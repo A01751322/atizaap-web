@@ -7,65 +7,63 @@
         <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body class="pt-14">
-        <!-- Pantalla de carga -->
-        <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+        <div id="loader-overlay"
+            class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
             <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
             <p class="text-gray-600 font-medium">Cargando panel...</p>
         </div>
-        <!-- Placeholder de navbar -->
         <div id="navbar-placeholder"
             data-partial="/partials/navbaradmins.html"
             data-content-id="page-content"
             data-slot-selector="#content-slot"
             data-fallback-selector=".border-dashed.rounded-lg">
         </div>
-        <!-- Contenido de Datos -->
-        <main id="page-content" data-active-tab="basic">
-            <div id="responsive-settings" class="mt-2 sm:grid sm:grid-cols-12 sm:gap-6 items-start">
-                <!-- Col izquierda: formulario + foto -->
-                <div id="responsive-left" class="sm:col-span-6 lg:col-span-5">
-                    <h1 class="text-3xl font-bold">Datos</h1>
-                    <div id="tabs-placeholder" class="mb-4"></div>
-                    <!-- Campos de información -->
-                    <div class="card card--hover mb-4">
-                        <p class="text-2xl card-muted">
-                            <span class="card-title">Comercios Actualizados</span>
-                            <div id="stacked-bar-chart-actualizados" class="card-chart"></div>
-                        </p>
-                    </div>
+        <main id="page-content">
+            <h1 class="text-3xl font-bold">Datos</h1>
+            
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
 
-                    <div class="card card--hover mb-4">
-                        <p class="text-2xl card-muted">
-                            <span class="card-title">Comercios más Visitados</span>
-                            <div id="stacked-bar-chart-visitados" class="card-chart"></div>
-                        </p>
-                    </div>
-
-                    <div class="card card--hover mb-4">
-                        <p class="text-2xl card-muted">
-                            <span class="card-title">Comercios Activos</span>
-                            <div id="stacked-bar-chart-activos" class="card-chart"></div>
-                        </p>
-                    </div>
-                </div>
-                <!-- Col derecha: mapa -->
-                <div id="responsive-right" class="sm:col-span-6 lg:col-span-7">
-                    <!-- Mapa ubicación -->
-                    <section class="mt-8 sm:mt-0">
-                        <label class="block mb-3 text-2xl font-bold text-gray-900 text-center sm:text-right">Zonas mas activas</label>
-                        <!-- (Opcional) el backend puede prellenar este hidden -->
-                        <input type="hidden" id="address" name="address" value="Reforma 22, Emiliano Zapata, 52918 Ciudad López Mateos, Méx.">
-                        <iframe id="gmap-embed"
-                                class="w-full h-64 sm:h-80 rounded-lg border border-gray-300"
-                                loading="lazy"
-                                referrerpolicy="no-referrer-when-downgrade"
-                                src="">
-                        </iframe>
-                    </section>
+            <div class="bg-white p-4 shadow rounded-lg border border-gray-200">
+                <h3 class="font-semibold mb-2">Áreas más activas (Últimos 7 días)</h3>
+                <div class="h-64">
+                    <canvas id="admin-chart-areas"></canvas>
                 </div>
             </div>
+
+            <div class="bg-white p-4 shadow rounded-lg border border-gray-200">
+                <h3 class="font-semibold mb-2">Redenciones Globales (Últimos 30 días)</h3>
+                <div class="h-64">
+                    <canvas id="admin-chart-redenciones-dia"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 shadow rounded-lg border border-gray-200">
+                <h3 class="font-semibold mb-2">Top 10 Negocios por Redenciones</h3>
+                <div class="h-64">
+                    <canvas id="admin-chart-top-negocios"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 shadow rounded-lg border border-gray-200">
+                <h3 class="font-semibold mb-2">Top 10 Usuarios por Redenciones</h3>
+                <div class="h-64">
+                    <canvas id="admin-chart-top-usuarios"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white p-4 shadow rounded-lg border border-gray-200 max-w-sm mx-auto mt-6">
+            <h3 class="font-semibold mb-2 text-center">Distribución de Negocios por Tipo</h3>
+            <div class="h-64">
+                <canvas id="admin-chart-tipos-negocio"></canvas>
+            </div>
+        </div>
+
         </main>
-        <script defer src="/static/admins/navbar.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+        <script defer src="/static/admins/navbar.js"></script>
+        <script defer src="/static/admins/datos.js"></script>
     </body>
 </html>
