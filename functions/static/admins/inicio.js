@@ -1,461 +1,478 @@
 /* eslint-env browser, es2021 */
-/* eslint-disable max-len, require-jsdoc, brace-style, no-multi-spaces */
-// /functions/static/admins/inicio.js  (browser script - no imports)
-// Este archivo consume la API REST en Functions que
-// se conecta a tu RDS (MySQL).
-// Endpoints esperados:
-//   GET    /api/admin/negocios?q=&status=&category=&limit=100
-//   POST   /api/admin/negocios
-//   PATCH  /api/admin/negocios/:id/status
+// /functions/static/admins/inicio.js
 
-// const e = require("express");
+/* global Modal */
+/* eslint-disable max-len, object-curly-spacing, require-jsdoc, space-before-function-paren */
 
-const tbody = document.getElementById("biz-tbody");
-const emptyState = document.getElementById("empty-state");
-const loaderOverlay = document.getElementById("loader-overlay");
+(function() {
+  "use strict";
 
-const searchInput = document.getElementById("searchInput");
-const filterStatusSel = document.getElementById("filter-status");
-const filterCategory = document.getElementById("filter-category");
-const filterApplyBtn = document.getElementById("filter-apply");
-const filterClearBtn = document.getElementById("filter-clear");
+  // ===== Helpers =====
+  const $ = (sel) => document.querySelector(sel);
 
-const addForm = document.getElementById("add-business-form");
-
-const drawer = document.getElementById("addBusinessPanel");
-const openAddBtn = document.getElementById("openAddBusiness");
-const editPanel = document.getElementById("editBusinessPanel");
-const editForm = document.getElementById("edit-business-form");
-
-let negociosCache = [];
-let firstLoad = true;
-
-/**
- * MODO DEMO (sin DB)
- * Cambia USE_MOCK a false cuando conectes la API.
- */
-const USE_MOCK = true;
-
-// Datos de ejemplo para trabajar sin conexión a la DB
-const MOCK_DATA = [
-  {id: 1, nombre: "Test Café", representante: "Mike", correo: "test@example.com", telefono: "5551234567", categoria: "Servicios", ubicacion: "Atizapán", descripcion: "Café artesanal", beneficio: "10% en bebidas", estado: "Activa", created_at: Date.now() - 1000 * 60 * 60 * 24 * 5},
-  {id: 2, nombre: "Taquería DO", representante: "Ana", correo: "ana@do.com", telefono: "5551112222", categoria: "Comida",   ubicacion: "CDMX",     descripcion: "Tacos al pastor", beneficio: "2x1 martes",      estado: "Inactiva", created_at: Date.now() - 1000 * 60 * 60 * 24 * 12},
-  {id: 3, nombre: "Gimnasio X", representante: "Luis", correo: "luis@x.com", telefono: "5553334444", categoria: "Salud",    ubicacion: "Naucalpan", descripcion: "Membresías",      beneficio: "Mes gratis",      estado: "Activa",   created_at: Date.now() - 1000 * 60 * 60 * 24 * 30},
-];
-
-function nextId() {
-  const ids = MOCK_DATA.map((x) => Number(x.id) || 0);
-  let max = 0;
-  for (let i = 0; i < ids.length; i++) {if (ids[i] > max) max = ids[i];}
-  return max + 1;
-}
-
-function normDate(d) {
-  try {
-    if (!d) return "-";
-    const date = typeof d === "string" ? new Date(d) : new Date(Number(d));
-    if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString();
-  } catch (e) {return "-";}
-}
-
-function statusBadge(status, idx, id) {
-  const active = status === "Activa";
-  const btnCls = active ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800";
-  const dotCls = active ? "bg-green-500" : "bg-yellow-500";
-  return `
-    <div class="relative inline-block" data-status-container>
-      <button type="button" id="status-btn-${idx}"
-        data-status-btn data-dropdown-toggle="status-dd-${idx}"
-        class="inline-flex items-center gap-1 rounded-full text-xs font-medium px-2.5 py-1 ${btnCls}">
-        <span class="w-2 h-2 rounded-full ${dotCls}" data-status-dot></span>
-        <span data-status-text>${active ? "Activa" : "Inactiva"}</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-             fill="currentColor" class="ms-1 h-3 w-3">
-          <path fill-rule="evenodd"
-          d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
-          clip-rule="evenodd"/>
-        </svg>
-      </button>
-      <div id="status-dd-${idx}" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-28">
-        <ul class="py-1 text-sm text-gray-700">
-          <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100"
-          data-set-status="Activa" data-id="${id}">Activa</button></li>
-          <li><button type="button" class="w-full text-left px-4 py-2 hover:bg-gray-100"
-          data-set-status="Inactiva" data-id="${id}">Inactiva</button></li>
-        </ul>
-      </div>
-    </div>`;
-}
-
-function render(list) {
-  tbody.innerHTML = "";
-  if (!list.length) {
-    emptyState.classList.remove("hidden");
-    return;
-  }
-  emptyState.classList.add("hidden");
-
-  list.forEach((n, i) => {
-    const tr = document.createElement("tr");
-    tr.className = "bg-white border-t border-gray-200 hover:bg-gray-50";
-    tr.dataset.id = n.id;
-
-    tr.innerHTML = `
-      <td class="px-4 py-4">${String(i+1).padStart(2, "0")}</td>
-      <td class="px-6 py-4">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full bg-gray-200"></div>
-          <div>
-            <div class="font-medium text-gray-900">${n.nombre || "-"}</div>
-            <div class="text-xs text-gray-500">${n.correo || ""}</div>
-          </div>
-        </div>
-      </td>
-      <td class="px-6 py-4">${statusBadge(n.estado || "Activa", i+1, n.id)}</td>
-      <td class="px-6 py-4">${normDate(n.created_at)}</td>
-      <td class="px-6 py-4">${n.descripcion ? n.descripcion.substring(0, 60) : ""}</td>
-      <td class="px-6 py-4 text-right">
-        <button type="button" 
-        data-modal-target="editBusinessPanel" 
-        data-modal-toggle="editBusinessPanel" 
-        class="inline-flex items-center p-2 rounded hover:bg-gray-100" 
-        title="Editar" 
-        data-edit-id="${n.id}">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-          class="h-5 w-5 text-emerald-600"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0L3.9 16.388a5.25 5.25 0 0 0-1.32 2.214l-.8 2.401a.75.75 0 0 0 .948.948l2.401-.8a5.25 5.25 0 0 0 2.214-1.32L21.731 5.981a2.625 2.625 0 0 0 0-3.712Zm-5.004 3.256 1.748 1.748-9.9 9.9a3.75 3.75 0 0 1-1.582.95l-1.86.62.62-1.86a3.75 3.75 0 0 1 .95-1.582l9.9-9.9Z"/></svg>
-        </button>
-        <button type="button" class="inline-flex items-center p-2 rounded hover:bg-gray-100 ms-1" title="Borrar">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-          class="h-5 w-5 text-red-600">
-          <path d="M9 3.75A1.5 1.5 0 0 1 10.5 2.25h3A1.5 1.5 0 0 1 15 3.75V5H19.5a.75.75 0 0 1 0 1.5h-15A.75.75 0 0 1 4.5 5H9V3.75Z"/>
-          <path d="M6.75 7.25h10.5l-.64 11.063A2.25 2.25 0 0 1 14.37 20.5H9.63a2.25 2.25 0 0 1-2.241-2.187L6.75 7.25Z"/></svg>
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  if (typeof window.initFlowbite === "function") {
-    try {window.initFlowbite();} catch (e) {/* noop: Flowbite puede no estar cargado aún */}
-  }
-}
-
-function openEdit() {
-  if (!editPanel) return;
-  editPanel.removeAttribute("hidden");
-  editPanel.setAttribute("aria-hidden", "false");
-  editPanel.classList.remove("translate-x-full");
-}
-function closeEdit() {
-  if (!editPanel) return;
-  editPanel.classList.add("translate-x-full");
-  editPanel.setAttribute("aria-hidden", "true");
-  setTimeout(() => editPanel.setAttribute("hidden", ""), 0);
-}
-
-function getFilters() {
-  return {
-    q: ((searchInput ? searchInput.value : "") || "").trim(),
-    status: (filterStatusSel ? filterStatusSel.value : "all"),
-    category: ((filterCategory ? filterCategory.value : "") || "").trim(),
+  const showFeedback = (message, type = "info", duration = 3000) => {
+    console.log(`[Admin Feedback - ${type}]: ${message}`);
+    const prefix = type === "error" ? "Error: " : type === "success" ? "Éxito: " : "";
+    alert(prefix + message); // Simple alert, replace if needed
   };
-}
 
-function openDrawer() {
-  if (!drawer) return;
-  drawer.removeAttribute("hidden");
-  drawer.setAttribute("aria-hidden", "false");
-  drawer.classList.remove("translate-x-full");
-}
-function closeDrawer() {
-  if (!drawer) return;
-  drawer.classList.add("translate-x-full");
-  drawer.setAttribute("aria-hidden", "true");
-  setTimeout(() => drawer.setAttribute("hidden", ""), 250); // tras la transición
-}
+  const setBusy = (btn, busyText = "Procesando...") => {
+    if (!btn) return () => {};
+    const originalHTML = btn.innerHTML;
+    const originalDisabled = btn.disabled;
+    btn.disabled = true;
+    btn.classList.add("opacity-60", "cursor-not-allowed");
+    const spinnerSVG = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v1a7 7 0 00-7 7h1z"></path></svg>`;
+    const isDarkText = btn.classList.contains("text-gray-900") || !btn.classList.contains("text-white");
+    btn.innerHTML = `<span class="inline-flex items-center">${spinnerSVG.replace("text-white", isDarkText ? "text-gray-700" : "text-white")} ${busyText}</span>`;
+    return () => {
+      btn.disabled = originalDisabled;
+      btn.classList.remove("opacity-60", "cursor-not-allowed");
+      btn.innerHTML = originalHTML;
+    };
+  };
 
-// Garantiza que arranque oculto (iOS a veces ignora el hidden inicial)
-if (drawer) {
-  drawer.classList.add("translate-x-full");
-  drawer.setAttribute("aria-hidden", "true");
-  drawer.setAttribute("hidden", "");
-}
-if (editPanel) {
-  editPanel.setAttribute("aria-hidden", "true");
-  editPanel.setAttribute("hidden", "");
-}
+  // ===== DOM Elements =====
+  const tbody = $("#biz-tbody");
+  const emptyState = $("#empty-state");
+  const loaderOverlay = $("#loader-overlay");
 
-// Abrir/cerrar
-if (openAddBtn) {
-  openAddBtn.addEventListener("click", (e) => {e.preventDefault(); openDrawer();});
-}
-document.querySelectorAll("[data-drawer-hide=\"addBusinessPanel\"]").forEach((btn) => {
-  btn.addEventListener("click", (e) => {e.preventDefault(); closeDrawer();});
-});
-document.querySelectorAll("[data-edit-hide=\"editBusinessPanel\"]").forEach((btn) => {
-  btn.addEventListener("click", (e) => {e.preventDefault(); closeEdit();});
-});
-// Cerrar con tecla Escape
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {closeDrawer(); closeEdit();}
-});
-// Delegación para abrir y prellenar el panel de edición
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-edit-id]");
-  if (!btn) return;
-  const id = btn.getAttribute("data-edit-id");
-  const item = negociosCache.find((x) => String(x.id) === String(id));
-  if (!item) return;
+  const searchInput = $("#searchInput");
+  const filterCategory = $("#filter-category");
+  const filterApplyBtn = $("#filter-apply");
+  const filterClearBtn = $("#filter-clear");
+  const downloadCsvBtn = $("#downloadCsvBtn"); // CSV Button
 
-  if (editForm) {
-    editForm.dataset.id = String(item.id);
-    const setV = (elId, val) => {const el = document.getElementById(elId); if (el) el.value = val || "";};
-    setV("edit-neg-nombre", item.nombre);
-    setV("edit-neg-representante", item.representante);
-    setV("edit-neg-correo", item.correo);
-    setV("edit-neg-telefono", item.telefono);
-    setV("edit-neg-categoria", item.categoria);
-    setV("edit-neg-ubicacion", item.ubicacion);
-    const desc = document.getElementById("edit-neg-descripcion"); if (desc) desc.value = item.descripcion || "";
-    setV("edit-neg-beneficio", item.beneficio);
-    const radios = editForm.querySelectorAll("input[name=\"edit-estado\"]");
-    radios.forEach((r) => {r.checked = (String(r.value) === String(item.estado || "Activa"));});
-  }
-  openEdit();
-});
-async function updateNegocio(id, payload) {
-  if (USE_MOCK) {
-    const idx = MOCK_DATA.findIndex((x) => String(x.id) === String(id));
-    if (idx !== -1) {
-      MOCK_DATA[idx] = Object.assign({}, MOCK_DATA[idx], payload);
+  const addForm = $("#add-business-form");
+  const addModalEl = $("#addBusinessPanel");
+
+  const editForm = $("#edit-business-form");
+  const editModalEl = $("#editBusinessPanel");
+
+  // ===== State =====
+  let negociosCache = []; // To store fetched businesses for filtering/editing
+  const currentFilters = { q: "", category: "" }; // Store current filter values
+
+  // ===== Lambda Interaction =====
+  const LAMBDA_ADMIN_URL = "https://6khdpce4zdgyjfiyzoeuq7tfsi0okojz.lambda-url.us-east-1.on.aws/"; // YOUR LAMBDA URL
+
+  /**
+   * Render table rows into the DOM.
+   * @param {Array<Object>} list - Items to render.
+   * @return {void}
+   */
+  function renderTable(list = []) {
+    if (!tbody) {
+      console.error("Table body #biz-tbody not found.");
+      return;
     }
-    return {id};
-  }
-  /* =================== DB/API (comentado) ===================
-  const res = await fetch(`/api/admin/negocios/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(`PATCH negocio ${res.status}`);
-  return res.json();
-  ============================================================ */
-}
 
-
-async function fetchNegocios() {
-  const {q, status, category} = getFilters();
-
-  if (USE_MOCK) {
-    const qlc = (q || "").toLowerCase();
-    const catlc = (category || "").toLowerCase();
-    const filtered = MOCK_DATA
-        .filter((n) => {
-          const okStatus = (status === "all" || n.estado === status);
-          const okCat = (!catlc || String(n.categoria || "").toLowerCase().indexOf(catlc) !== -1);
-          const blob = [
-            n.nombre, n.representante, n.correo, n.telefono,
-            n.categoria, n.ubicacion, n.descripcion, n.beneficio,
-          ].join(" ").toLowerCase();
-          const okQ = (!qlc || blob.indexOf(qlc) !== -1);
-          return okStatus && okCat && okQ;
-        })
-        .sort((a, b) => (Number(b.created_at || 0) - Number(a.created_at || 0)));
-    negociosCache = filtered;
-    render(negociosCache);
-    if (firstLoad) {
-      firstLoad = false;
-      if (loaderOverlay) loaderOverlay.classList.add("hidden");
+    if (!list || list.length === 0) {
+      tbody.innerHTML = ""; // Clear any previous rows
+      emptyState?.classList.remove("hidden");
+      return;
     }
-    return;
-  }
+    emptyState?.classList.add("hidden");
+    tbody.innerHTML = ""; // Clear previous content
 
-  /* =================== DB/API (comentado) ===================
-  const params = new URLSearchParams({ q, status, category, limit: "100" });
-  const res = await fetch(`/api/admin/negocios?${params.toString()}`, {
-    headers: { Accept: "application/json" }
-  });
-  if (!res.ok) throw new Error(`GET negocios ${res.status}`);
-  const data = await res.json(); // { items: [...] }
-  negociosCache = Array.isArray(data.items) ? data.items : [];
-  render(negociosCache);
-  if (firstLoad) {
-    firstLoad = false;
-    if (loaderOverlay) loaderOverlay.classList.add("hidden");
-  }
-  ============================================================ */
-}
+    list.forEach((n, i) => {
+      const tr = document.createElement("tr");
+      tr.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600";
+      // Store data on the row for edit functionality
+      tr.dataset.id = n.id;
+      tr.dataset.nombre = n.nombre || "";
+      tr.dataset.representante = n.representante || "";
+      tr.dataset.correo = n.correo || "";
+      tr.dataset.telefono = n.telefono || "";
+      tr.dataset.categoria = n.categoria || "";
+      tr.dataset.ubicacion = n.ubicacion || "";
+      tr.dataset.descripcion = n.descripcion || "";
 
-async function patchStatus(id, estado) {
-  if (USE_MOCK) {
-    let idx = -1;
-    for (let i = 0; i < MOCK_DATA.length; i++) {
-      if (String(MOCK_DATA[i].id) === String(id)) {idx = i; break;}
-    }
-    if (idx !== -1) {MOCK_DATA[idx].estado = estado;}
-    return {ok: true};
-  }
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-medium text-gray-900  whitespace-nowrap dark:text-white">${String(i + 1).padStart(2, "0")}</td>
+        <td class="px-6 py-3">
+          <div class="font-medium text-gray-900 dark:text-white">${n.nombre || "-"}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">${n.correo || ""}</div>
+        </td>
+        <td class="px-6 py-3">${n.representante || "-"}</td>
+        <td class="px-6 py-3">${n.categoria || "-"}</td>
+        {/* Status column REMOVED */}
+        {/* Join Date column REMOVED (not in data) */}
+        {/* Notes column REMOVED (not in data) */}
+        <td class="px-6 py-3 text-right whitespace-nowrap">
+          <button
+            type="button"
+            data-action="edit"
+            data-id="${n.id}"
+            class="inline-flex items-center p-1.5 rounded text-sm font-medium text-center text-gray-500 hover:text-gray-800 focus:ring-2 focus:outline-none focus:ring-gray-300 dark:text-gray-400 dark:hover:text-white dark:focus:ring-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+            title="Editar"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path>
+              <path
+                fill-rule="evenodd"
+                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-action="delete"
+            data-id="${n.id}"
+            class="inline-flex items-center p-1.5 rounded text-sm font-medium text-center text-gray-500 hover:text-gray-800 focus:ring-2 focus:outline-none focus:ring-gray-300 dark:text-gray-400 dark:hover:text-white dark:focus:ring-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 ms-1"
+            title="Borrar"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
 
-  /* =================== DB/API (comentado) ===================
-  const res = await fetch(`/api/admin/negocios/${encodeURIComponent(id)}/status`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ estado })
-  });
-  if (!res.ok) throw new Error(`PATCH status ${res.status}`);
-  ============================================================ */
-}
-
-async function createNegocio(payload) {
-  if (USE_MOCK) {
-    const item = Object.assign({}, payload, {id: nextId(), created_at: Date.now()});
-    // Al principio para que aparezca hasta arriba
-    MOCK_DATA.unshift(item);
-    return {id: item.id};
-  }
-
-  /* =================== DB/API (comentado) ===================
-  const res = await fetch(`/api/admin/negocios`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(`POST negocios ${res.status}`);
-  return res.json();
-  ============================================================ */
-}
-
-// Eventos UI
-if (searchInput) {
-  searchInput.addEventListener("input", () => {
-    fetchNegocios().catch(console.error);
-  });
-}
-if (filterApplyBtn) {
-  filterApplyBtn.addEventListener("click", () => {
-    fetchNegocios().catch(console.error);
-  });
-}
-if (filterClearBtn) {
-  filterClearBtn.addEventListener("click", () => {
-    if (filterStatusSel) {filterStatusSel.value = "all";}
-    if (filterCategory)  {filterCategory.value  = "";}
-    fetchNegocios().catch(console.error);
-  });
-}
-
-// Delegación para cambiar estado
-document.addEventListener("click", async (e) => {
-  const opt = e.target.closest("[data-set-status]");
-  if (!opt) return;
-  const estado = opt.getAttribute("data-set-status");
-  let id;
-  if (opt.getAttribute("data-id")) {
-    id = opt.getAttribute("data-id");
-  } else {
-    const tr = opt.closest("tr");
-    if (tr && tr.dataset) {
-      id = tr.dataset.id;
+    // Reinitialize Flowbite for any dynamic components if needed
+    if (typeof window.initFlowbite === "function") {
+      try {
+        window.initFlowbite();
+      } catch (e) {
+        console.warn("Flowbite re-init failed", e);
+      }
     }
   }
-  if (!id) return;
 
-  const container = opt.closest("[data-status-container]");
-  if (container) {
-    const btn = container.querySelector("[data-status-btn]");
-    const dot = container.querySelector("[data-status-dot]");
-    const text = container.querySelector("[data-status-text]");
-    btn.classList.remove("bg-green-100", "text-green-800",
-        "bg-yellow-100", "text-yellow-800");
-    dot.classList.remove("bg-green-500", "bg-yellow-500");
-    if (estado === "Activa") {
-      btn.classList.add("bg-green-100", "text-green-800");
-      dot.classList.add("bg-green-500");
-      text.textContent = "Activa";
+  /** Fetches businesses from Lambda based on current filters */
+  async function fetchAndRenderBusinesses() {
+    // Show loading state in table
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-gray-500 dark:text-gray-400">Cargando...</td></tr>`;
+    emptyState?.classList.add("hidden");
+
+    const params = new URLSearchParams({action: "listBusinesses"});
+    if (currentFilters.q) params.set("q", currentFilters.q);
+    if (currentFilters.category) params.set("category", currentFilters.category);
+    // Status filter removed
+
+    const url = `${LAMBDA_ADMIN_URL}?${params.toString()}`;
+    console.log("Fetching businesses:", url); // Debug log
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+      negociosCache = Array.isArray(data) ? data : []; // Store fetched data
+      renderTable(negociosCache);
+    } catch (err) {
+      console.error("Error fetching businesses:", err);
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-600 dark:text-red-400">Error al cargar: ${err.message}</td></tr>`;
+      emptyState?.classList.add("hidden");
+    } finally {
+      loaderOverlay?.classList.add("hidden"); // Hide initial page loader after first fetch
+    }
+  }
+
+  /**
+   * Create a business.
+   * @param {FormData} formData - Form data from the Add modal.
+   * @return {Promise<boolean>}
+   */
+  async function addBusiness(formData) {
+    const url = `${LAMBDA_ADMIN_URL}?action=addBusiness`;
+    const payload = Object.fromEntries(formData.entries());
+    // Remove empty description if necessary
+    if (!payload.descripcion) delete payload.descripcion;
+    // Status removed
+
+    console.log("Adding business:", payload); // Debug log
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+      showFeedback(data.message || "Negocio agregado.", "success");
+      return true; // Indicate success
+    } catch (err) {
+      console.error("Error adding business:", err);
+      showFeedback(`Error al agregar: ${err.message}`, "error");
+      return false; // Indicate failure
+    }
+  }
+
+  /**
+   * Update a business.
+   * @param {string|number} idNegocio - Business id.
+   * @param {FormData} formData - Form data from the Edit modal.
+   * @return {Promise<boolean>}
+   */
+  async function updateBusiness(idNegocio, formData) {
+    const url = `${LAMBDA_ADMIN_URL}?action=updateBusiness&id_negocio=${idNegocio}`;
+    const payload = Object.fromEntries(formData.entries());
+    if (!payload.descripcion) delete payload.descripcion;
+    // Status removed
+
+    console.log(`Updating business ${idNegocio}:`, payload); // Debug log
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+      showFeedback(data.message || "Negocio actualizado.", "success");
+      return true;
+    } catch (err) {
+      console.error("Error updating business:", err);
+      showFeedback(`Error al actualizar: ${err.message}`, "error");
+      return false;
+    }
+  }
+
+  /**
+   * Delete a business.
+   * @param {string|number} idNegocio - Business id.
+   * @return {Promise<boolean>}
+   */
+  async function deleteBusiness(idNegocio) {
+    const url = `${LAMBDA_ADMIN_URL}?action=deleteBusiness&id_negocio=${idNegocio}`;
+    console.log(`Deleting business ${idNegocio}`); // Debug log
+    try {
+      const res = await fetch(url, { method: "POST" }); // Body is empty
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+      showFeedback(data.message || "Negocio eliminado.", "success");
+      return true;
+    } catch (err) {
+      console.error("Error deleting business:", err);
+      showFeedback(`Error al eliminar: ${err.message}`, "error");
+      return false;
+    }
+  }
+
+  /** Triggers CSV download */
+  async function downloadCsvReport() {
+    const btn = downloadCsvBtn;
+    const restore = setBusy(btn, "Generando..."); // Show busy state on download button
+    const url = `${LAMBDA_ADMIN_URL}?action=downloadCsv`;
+    console.log("Downloading CSV from:", url);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        // Try to parse error message if available
+        let errorMsg = `Error ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          void 0; /* ignore if body is not JSON */
+        }
+        throw new Error(errorMsg);
+      }
+
+      // Get filename from header if possible, otherwise use default
+      const disposition = res.headers.get("content-disposition");
+      let filename = "reporte_negocios.csv";
+      if (disposition && disposition.indexOf("attachment") !== -1) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(disposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+
+      // Create blob and download link
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      a.remove();
+    } catch (err) {
+      console.error("Error downloading CSV:", err);
+      showFeedback(`No se pudo descargar el reporte: ${err.message}`, "error");
+    } finally {
+      restore(); // Restore download button state
+    }
+  }
+
+  // ===== Modal Handling (using Flowbite) =====
+  function getModalInstance(modalElement) {
+    if (!modalElement) return null;
+    // Assumes Flowbite's Modal class is available globally
+    const hasModal = typeof window !== "undefined" && typeof window.Modal !== "undefined";
+    if (hasModal) {
+      // Get existing instance or create new one
+      return window.Modal.getInstance(modalElement) || new window.Modal(modalElement, { closable: true, backdrop: "static" });
     } else {
-      btn.classList.add("bg-yellow-100", "text-yellow-800");
-      dot.classList.add("bg-yellow-500");
-      text.textContent = "Inactiva";
+      console.warn("Flowbite Modal JS not loaded or initialized.");
+      return null; // Fallback: manual show/hide might be needed
     }
   }
 
-  try {
-    await patchStatus(id, estado);
-  } catch (err) {
-    console.error("[inicio] No se pudo actualizar estado:", err);
-    fetchNegocios().catch(console.error);
+  function openModal(modalEl) {
+    const instance = getModalInstance(modalEl);
+    if (instance) instance.show();
+    else modalEl?.classList.remove("hidden"); // Manual fallback
   }
-});
 
-// Alta de negocio
-if (addForm) {
-  addForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(addForm);
-    const getVal = (key) => {
-      const v = fd.get(key);
-      return (v ? String(v) : "").trim();
-    };
-    const estadoVal = fd.get("estado");
-    const estadoStr = estadoVal ? String(estadoVal) : "Activa";
+  function closeModal(modalEl) {
+    const instance = getModalInstance(modalEl);
+    if (instance) instance.hide();
+    else modalEl?.classList.add("hidden"); // Manual fallback
+  }
 
-    const payload = {
-      nombre: getVal("nombre"),
-      representante: getVal("representante"),
-      correo: getVal("correo"),
-      telefono: getVal("telefono"),
-      categoria: getVal("categoria"),
-      ubicacion: getVal("ubicacion"),
-      descripcion: getVal("descripcion"),
-      beneficio: getVal("beneficio"),
-      estado: estadoStr,
-    };
-    try {
-      await createNegocio(payload);
-      addForm.reset();
-      closeDrawer();
-      await fetchNegocios();
-    } catch (err) {
-      console.error("[inicio] No se pudo crear el negocio:", err);
-      window.alert("No se pudo guardar. Revisa consola.");
+  // ===== Initialization =====
+  document.addEventListener("DOMContentLoaded", () => {
+    // Initial load of businesses
+    fetchAndRenderBusinesses();
+
+    // --- Event Listeners ---
+
+    // Search Input (debounce fetching)
+    let searchTimeout;
+    searchInput?.addEventListener("input", () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentFilters.q = searchInput.value.trim();
+        fetchAndRenderBusinesses();
+      }, 300); // 300ms delay after typing stops
+    });
+
+    // Filter Apply Button
+    filterApplyBtn?.addEventListener("click", () => {
+      currentFilters.category = filterCategory?.value.trim() || "";
+      // Status filter removed
+      fetchAndRenderBusinesses();
+      // Close dropdown manually if needed (Flowbite might handle this)
+      const dropdown = document.getElementById("filter-dd");
+      if (dropdown) {
+        const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
+        if (hasDropdown) {
+          window.Dropdown.getInstance(dropdown)?.hide();
+        }
+      }
+    });
+
+    // Filter Clear Button
+    filterClearBtn?.addEventListener("click", () => {
+      if (filterCategory) filterCategory.value = "";
+      // Status select removed
+      currentFilters.category = "";
+      fetchAndRenderBusinesses();
+      // Close dropdown manually if needed
+      const dropdown = document.getElementById("filter-dd");
+      if (dropdown) {
+        const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
+        if (hasDropdown) {
+          window.Dropdown.getInstance(dropdown)?.hide();
+        }
+      }
+    });
+
+    // Download CSV Button
+    downloadCsvBtn?.addEventListener("click", downloadCsvReport);
+
+    // Add Business Form Submit
+    addForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = addForm.querySelector("button[type='submit']");
+      const restore = setBusy(btn, "Guardando...");
+      const success = await addBusiness(new FormData(addForm));
+      restore();
+      if (success) {
+        addForm.reset();
+        closeModal(addModalEl);
+        await fetchAndRenderBusinesses(); // Refresh list
+      }
+    });
+
+    // Edit Business Form Submit
+    editForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idToEdit = editForm.querySelector("#edit-neg-id")?.value;
+      if (!idToEdit) {
+        showFeedback("Error: No se pudo identificar el negocio a editar.", "error");
+        return;
+      }
+      const btn = editForm.querySelector("button[type='submit']");
+      const restore = setBusy(btn, "Guardando...");
+      const success = await updateBusiness(idToEdit, new FormData(editForm));
+      restore();
+      if (success) {
+        closeModal(editModalEl);
+        await fetchAndRenderBusinesses(); // Refresh list
+      }
+    });
+
+    // Table Action Buttons (Edit/Delete) - Event Delegation
+    tbody?.addEventListener("click", async (e) => {
+      const button = e.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const id = button.dataset.id;
+      if (!id) return;
+
+      if (action === "edit") {
+        // Find data stored in the cache or on the row
+        const negocioData = negociosCache.find((n) => String(n.id) === String(id)) || button.closest("tr")?.dataset;
+        if (!negocioData || typeof negocioData !== "object") {
+          showFeedback("No se encontraron los datos para editar.", "error");
+          return;
+        }
+        // Pre-fill edit form
+        $("#edit-neg-id").value = id;
+        $("#edit-neg-nombre").value = negocioData.nombre || "";
+        $("#edit-neg-representante").value = negocioData.representante || "";
+        $("#edit-neg-correo").value = negocioData.correo || "";
+        $("#edit-neg-telefono").value = negocioData.telefono || "";
+        $("#edit-neg-categoria").value = negocioData.categoria || "";
+        $("#edit-neg-ubicacion").value = negocioData.ubicacion || "";
+        $("#edit-neg-descripcion").value = negocioData.descripcion || "";
+        // Status removed
+
+        openModal(editModalEl);
+      } else if (action === "delete") {
+        const row = button.closest("tr");
+        const name = row?.dataset.nombre || `ID ${id}`;
+        if (
+          confirm(
+              `¿Estás seguro de que quieres eliminar "${name}"?\nEsta acción eliminará también al usuario representante y no se puede deshacer.`,
+          )
+        ) {
+          const restore = setBusy(button, "Eliminando...");
+          const success = await deleteBusiness(id);
+          if (success) {
+            await fetchAndRenderBusinesses(); // Refresh list
+          }
+          restore();
+        }
+      }
+    });
+
+    // Initialize Modals for Flowbite JS interaction (if Flowbite is loaded)
+    // This makes data-modal-hide attributes work correctly.
+    // It's safe to call even if already initialized by navbar.js
+    if (typeof Modal !== "undefined") {
+      if (addModalEl) getModalInstance(addModalEl); // Initialize add modal
+      if (editModalEl) getModalInstance(editModalEl); // Initialize edit modal
     }
-  });
-}
-
-// Edición de negocio
-if (editForm) {
-  editForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = editForm.dataset.id;
-    const fd = new FormData(editForm);
-    const getVal = (key) => {const v = fd.get(key); return (v ? String(v) : "").trim();};
-    const estadoVal = fd.get("edit-estado");
-    const estadoStr = estadoVal ? String(estadoVal) : "Activa";
-    const payload = {
-      nombre: getVal("nombre"),
-      representante: getVal("representante"),
-      correo: getVal("correo"),
-      telefono: getVal("telefono"),
-      categoria: getVal("categoria"),
-      ubicacion: getVal("ubicacion"),
-      descripcion: getVal("descripcion"),
-      beneficio: getVal("beneficio"),
-      estado: estadoStr,
-    };
-    try {
-      await updateNegocio(id, payload);
-      closeEdit();
-      await fetchNegocios();
-    } catch (err) {
-      console.error("[inicio] No se pudieron guardar los cambios:", err);
-      window.alert("No se pudieron guardar los cambios. Revisa consola.");
-    }
-  });
-}
-
-// Primera carga
-fetchNegocios().catch((e) => {
-  console.error(e);
-  if (loaderOverlay) loaderOverlay.classList.add("hidden");
-});
+    // Optional: Ensure modals are hidden on load as a fallback
+    addModalEl?.classList.add("hidden");
+    addModalEl?.setAttribute("aria-hidden", "true");
+    editModalEl?.classList.add("hidden");
+    editModalEl?.setAttribute("aria-hidden", "true");
+  }); // End DOMContentLoaded
+})(); // End IIFE
