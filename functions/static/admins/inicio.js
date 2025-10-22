@@ -69,10 +69,10 @@
 
     if (!list || list.length === 0) {
       tbody.innerHTML = ""; // Clear any previous rows
-      emptyState?.classList.remove("hidden");
+      if (emptyState) emptyState.classList.remove("hidden");
       return;
     }
-    emptyState?.classList.add("hidden");
+    if (emptyState) emptyState.classList.add("hidden");
     tbody.innerHTML = ""; // Clear previous content
 
     list.forEach((n, i) => {
@@ -150,7 +150,7 @@
   async function fetchAndRenderBusinesses() {
     // Show loading state in table
     if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-gray-500 dark:text-gray-400">Cargando...</td></tr>`;
-    emptyState?.classList.add("hidden");
+    if (emptyState) emptyState.classList.add("hidden");
 
     const params = new URLSearchParams({action: "listBusinesses"});
     if (currentFilters.q) params.set("q", currentFilters.q);
@@ -169,9 +169,9 @@
     } catch (err) {
       console.error("Error fetching businesses:", err);
       if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-600 dark:text-red-400">Error al cargar: ${err.message}</td></tr>`;
-      emptyState?.classList.add("hidden");
+      if (emptyState) emptyState.classList.add("hidden");
     } finally {
-      loaderOverlay?.classList.add("hidden"); // Hide initial page loader after first fetch
+      if (loaderOverlay) loaderOverlay.classList.add("hidden"); // Hide initial page loader after first fetch
     }
   }
 
@@ -310,27 +310,46 @@
   // ===== Modal Handling (using Flowbite) =====
   function getModalInstance(modalElement) {
     if (!modalElement) return null;
-    // Assumes Flowbite's Modal class is available globally
     const hasModal = typeof window !== "undefined" && typeof window.Modal !== "undefined";
-    if (hasModal) {
-      // Get existing instance or create new one
-      return window.Modal.getInstance(modalElement) || new window.Modal(modalElement, { closable: true, backdrop: "static" });
-    } else {
+    if (!hasModal) {
+      // eslint-disable-next-line no-console
       console.warn("Flowbite Modal JS not loaded or initialized.");
-      return null; // Fallback: manual show/hide might be needed
+      return null;
+    }
+    let instance = null;
+    try {
+      if (typeof window.Modal.getInstance === "function") {
+        instance = window.Modal.getInstance(modalElement);
+      }
+    } catch (_e) {
+      instance = null;
+    }
+    if (instance) return instance;
+    try {
+      return new window.Modal(modalElement, { closable: true, backdrop: "static" });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("Modal constructor not available:", e);
+      return null;
     }
   }
 
   function openModal(modalEl) {
     const instance = getModalInstance(modalEl);
-    if (instance) instance.show();
-    else modalEl?.classList.remove("hidden"); // Manual fallback
+    if (instance && typeof instance.show === "function") {
+      instance.show();
+    } else if (modalEl) {
+      modalEl.classList.remove("hidden");
+    }
   }
 
   function closeModal(modalEl) {
     const instance = getModalInstance(modalEl);
-    if (instance) instance.hide();
-    else modalEl?.classList.add("hidden"); // Manual fallback
+    if (instance && typeof instance.hide === "function") {
+      instance.hide();
+    } else if (modalEl) {
+      modalEl.classList.add("hidden");
+    }
   }
 
   // ===== Initialization =====
@@ -342,125 +361,144 @@
 
     // Search Input (debounce fetching)
     let searchTimeout;
-    searchInput?.addEventListener("input", () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        currentFilters.q = searchInput.value.trim();
-        fetchAndRenderBusinesses();
-      }, 300); // 300ms delay after typing stops
-    });
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          currentFilters.q = searchInput.value.trim();
+          fetchAndRenderBusinesses();
+        }, 300);
+      });
+    }
 
     // Filter Apply Button
-    filterApplyBtn?.addEventListener("click", () => {
-      currentFilters.category = filterCategory?.value.trim() || "";
-      // Status filter removed
-      fetchAndRenderBusinesses();
-      // Close dropdown manually if needed (Flowbite might handle this)
-      const dropdown = document.getElementById("filter-dd");
-      if (dropdown) {
-        const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
-        if (hasDropdown) {
-          window.Dropdown.getInstance(dropdown)?.hide();
+    if (filterApplyBtn) {
+      filterApplyBtn.addEventListener("click", () => {
+        currentFilters.category = filterCategory ? (filterCategory.value.trim() || "") : "";
+        // Status filter removed
+        fetchAndRenderBusinesses();
+        // Close dropdown manually if needed (Flowbite might handle this)
+        const dropdown = document.getElementById("filter-dd");
+        if (dropdown) {
+          const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
+          if (hasDropdown) {
+            const ddInst = typeof window.Dropdown.getInstance === "function" ?
+              window.Dropdown.getInstance(dropdown) :
+              null;
+            if (ddInst && typeof ddInst.hide === "function") ddInst.hide();
+          }
         }
-      }
-    });
+      });
+    }
 
     // Filter Clear Button
-    filterClearBtn?.addEventListener("click", () => {
-      if (filterCategory) filterCategory.value = "";
-      // Status select removed
-      currentFilters.category = "";
-      fetchAndRenderBusinesses();
-      // Close dropdown manually if needed
-      const dropdown = document.getElementById("filter-dd");
-      if (dropdown) {
-        const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
-        if (hasDropdown) {
-          window.Dropdown.getInstance(dropdown)?.hide();
+    if (filterClearBtn) {
+      filterClearBtn.addEventListener("click", () => {
+        if (filterCategory) filterCategory.value = "";
+        // Status select removed
+        currentFilters.category = "";
+        fetchAndRenderBusinesses();
+        // Close dropdown manually if needed
+        const dropdown = document.getElementById("filter-dd");
+        if (dropdown) {
+          const hasDropdown = typeof window !== "undefined" && typeof window.Dropdown !== "undefined";
+          if (hasDropdown) {
+            const ddInst = typeof window.Dropdown.getInstance === "function" ?
+              window.Dropdown.getInstance(dropdown) :
+              null;
+            if (ddInst && typeof ddInst.hide === "function") ddInst.hide();
+          }
         }
-      }
-    });
+      });
+    }
 
     // Download CSV Button
-    downloadCsvBtn?.addEventListener("click", downloadCsvReport);
+    if (downloadCsvBtn) downloadCsvBtn.addEventListener("click", downloadCsvReport);
 
     // Add Business Form Submit
-    addForm?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = addForm.querySelector("button[type='submit']");
-      const restore = setBusy(btn, "Guardando...");
-      const success = await addBusiness(new FormData(addForm));
-      restore();
-      if (success) {
-        addForm.reset();
-        closeModal(addModalEl);
-        await fetchAndRenderBusinesses(); // Refresh list
-      }
-    });
+    if (addForm) {
+      addForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = addForm.querySelector("button[type='submit']");
+        const restore = setBusy(btn, "Guardando...");
+        const success = await addBusiness(new FormData(addForm));
+        restore();
+        if (success) {
+          addForm.reset();
+          closeModal(addModalEl);
+          await fetchAndRenderBusinesses(); // Refresh list
+        }
+      });
+    }
 
     // Edit Business Form Submit
-    editForm?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const idToEdit = editForm.querySelector("#edit-neg-id")?.value;
-      if (!idToEdit) {
-        showFeedback("Error: No se pudo identificar el negocio a editar.", "error");
-        return;
-      }
-      const btn = editForm.querySelector("button[type='submit']");
-      const restore = setBusy(btn, "Guardando...");
-      const success = await updateBusiness(idToEdit, new FormData(editForm));
-      restore();
-      if (success) {
-        closeModal(editModalEl);
-        await fetchAndRenderBusinesses(); // Refresh list
-      }
-    });
-
-    // Table Action Buttons (Edit/Delete) - Event Delegation
-    tbody?.addEventListener("click", async (e) => {
-      const button = e.target.closest("button[data-action]");
-      if (!button) return;
-
-      const action = button.dataset.action;
-      const id = button.dataset.id;
-      if (!id) return;
-
-      if (action === "edit") {
-        // Find data stored in the cache or on the row
-        const negocioData = negociosCache.find((n) => String(n.id) === String(id)) || button.closest("tr")?.dataset;
-        if (!negocioData || typeof negocioData !== "object") {
-          showFeedback("No se encontraron los datos para editar.", "error");
+    if (editForm) {
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const idToEdit = editForm.querySelector("#edit-neg-id")?.value;
+        if (!idToEdit) {
+          showFeedback("Error: No se pudo identificar el negocio a editar.", "error");
           return;
         }
-        // Pre-fill edit form
-        $("#edit-neg-id").value = id;
-        $("#edit-neg-nombre").value = negocioData.nombre || "";
-        $("#edit-neg-representante").value = negocioData.representante || "";
-        $("#edit-neg-correo").value = negocioData.correo || "";
-        $("#edit-neg-telefono").value = negocioData.telefono || "";
-        $("#edit-neg-categoria").value = negocioData.categoria || "";
-        $("#edit-neg-ubicacion").value = negocioData.ubicacion || "";
-        $("#edit-neg-descripcion").value = negocioData.descripcion || "";
-        // Status removed
-
-        openModal(editModalEl);
-      } else if (action === "delete") {
-        const row = button.closest("tr");
-        const name = row?.dataset.nombre || `ID ${id}`;
-        if (
-          confirm(
-              `¿Estás seguro de que quieres eliminar "${name}"?\nEsta acción eliminará también al usuario representante y no se puede deshacer.`,
-          )
-        ) {
-          const restore = setBusy(button, "Eliminando...");
-          const success = await deleteBusiness(id);
-          if (success) {
-            await fetchAndRenderBusinesses(); // Refresh list
-          }
-          restore();
+        const btn = editForm.querySelector("button[type='submit']");
+        const restore = setBusy(btn, "Guardando...");
+        const success = await updateBusiness(idToEdit, new FormData(editForm));
+        restore();
+        if (success) {
+          closeModal(editModalEl);
+          await fetchAndRenderBusinesses(); // Refresh list
         }
-      }
-    });
+      });
+    }
+
+    // Table Action Buttons (Edit/Delete) - Event Delegation
+    if (tbody) {
+      tbody.addEventListener("click", async (e) => {
+        const button = e.target.closest("button[data-action]");
+        if (!button) return;
+
+        const action = button.dataset.action;
+        const id = button.dataset.id;
+        if (!id) return;
+
+        if (action === "edit") {
+          // Find data stored in the cache or on the row
+          const rowEl = button.closest("tr");
+          const negocioData = negociosCache.find((n) => String(n.id) === String(id)) || (rowEl ? rowEl.dataset : null);
+          if (!negocioData || typeof negocioData !== "object") {
+            showFeedback("No se encontraron los datos para editar.", "error");
+            return;
+          }
+          // Pre-fill edit form
+          $("#edit-neg-id").value = id;
+          $("#edit-neg-nombre").value = negocioData.nombre || "";
+          $("#edit-neg-representante").value = negocioData.representante || "";
+          $("#edit-neg-correo").value = negocioData.correo || "";
+          $("#edit-neg-telefono").value = negocioData.telefono || "";
+          $("#edit-neg-categoria").value = negocioData.categoria || "";
+          $("#edit-neg-ubicacion").value = negocioData.ubicacion || "";
+          $("#edit-neg-descripcion").value = negocioData.descripcion || "";
+          // Status removed
+
+          openModal(editModalEl);
+        } else if (action === "delete") {
+          const row = button.closest("tr");
+          const name = row?.dataset.nombre || `ID ${id}`;
+          if (
+            confirm(
+                `¿Estás seguro de que quieres eliminar "${name}"?\nEsta acción eliminará también al usuario representante y no se puede deshacer.`,
+            )
+          ) {
+            const restore = setBusy(button, "Eliminando...");
+            const success = await deleteBusiness(id);
+            if (success) {
+              await fetchAndRenderBusinesses(); // Refresh list
+            }
+            restore();
+          }
+        }
+      });
+    }
 
     // Initialize Modals for Flowbite JS interaction (if Flowbite is loaded)
     // This makes data-modal-hide attributes work correctly.
@@ -470,9 +508,13 @@
       if (editModalEl) getModalInstance(editModalEl); // Initialize edit modal
     }
     // Optional: Ensure modals are hidden on load as a fallback
-    addModalEl?.classList.add("hidden");
-    addModalEl?.setAttribute("aria-hidden", "true");
-    editModalEl?.classList.add("hidden");
-    editModalEl?.setAttribute("aria-hidden", "true");
+    if (addModalEl) {
+      addModalEl.classList.add("hidden");
+      addModalEl.setAttribute("aria-hidden", "true");
+    }
+    if (editModalEl) {
+      editModalEl.classList.add("hidden");
+      editModalEl.setAttribute("aria-hidden", "true");
+    }
   }); // End DOMContentLoaded
 })(); // End IIFE
