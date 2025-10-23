@@ -114,6 +114,10 @@ app.get("/admin",
 app.get("/admin/datos",
     (req, res) => renderHtml(res, "web-admins/datos.html"));
 
+// --- Ruta Chatbot ---
+app.get("/admin/chatbot",
+    (req, res) => renderHtml(res, "web-admins/chatbot.html"));
+
 // --- Ruta ajustes ---
 app.get("/admin/ajustes",
     (req, res) => renderHtml(res, "web-admins/ajustes.html"));
@@ -126,7 +130,7 @@ app.get("/admin/ajustes",
 app.get("/merchant", (req, res) => renderHtml(res, "web-merchant/inicio.html"));
 
 // --- Ruta Datos ---
-app.get("/merchant/datos",
+app.get("/merchant/chatbot",
     (req, res) => renderHtml(res, "web-merchant/chatbot.html"));
 
 // --- Ruta promociones ---
