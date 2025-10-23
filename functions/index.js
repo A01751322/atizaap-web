@@ -11,7 +11,7 @@ app.use(express.static("public"));
 const expressStatic = require("express").static;
 app.use("/static", expressStatic(path.join(__dirname, "static")));
 
-// Security headers (CSP) for Express responses (admin/merchant views)
+/* // Security headers (CSP) for Express responses (admin/merchant views)
 app.use((req, res, next) => {
   res.setHeader(
       "Content-Security-Policy",
@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
-});
+}); */
 
 /* -------------------------
     Simple HTML include engine

@@ -333,16 +333,18 @@
           });
     }
 
+    let scanning = false;
+
     if (zxingReader && videoSelect && videoEl) {
+      // Cambiar de cámara mientras se está escaneando reinicia el lector
       videoSelect.addEventListener("change", () => {
-        if (zxingReader) {
+        if (!scanning) return;
+        if (zxingReader && typeof zxingReader.reset === "function") {
           zxingReader.reset();
         }
-
-        const deviceId = videoSelect.value;
-
+        const deviceId = videoSelect.value || null;
         zxingReader.decodeFromVideoDevice(
-            deviceId || null,
+            deviceId,
             videoEl,
             (res, err) => {
               if (res) {
@@ -351,18 +353,63 @@
               }
               const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
               if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
-                // eslint-disable-next-line no-console
+              // eslint-disable-next-line no-console
                 console.error(err);
               }
             },
         );
       });
 
-      // Start with the first camera by default
-      if (videoSelect.options.length > 0) {
-        videoSelect.value = videoSelect.options[0].value;
-        videoSelect.dispatchEvent(new Event("change"));
-      }
+      // Botones Iniciar / Detener
+      const startBtn = document.getElementById("start-scan");
+      const stopBtn = document.getElementById("stop-scan");
+
+      const startScan = () => {
+        if (!isSecureContext()) {
+          paintResponse("error",
+              "Se requiere HTTPS o localhost para usar la cámara.");
+          return;
+        }
+        if (!videoSelect || videoSelect.options.length === 0) {
+          paintResponse("error", "No se encontró ninguna cámara.");
+          return;
+        }
+        const deviceId = videoSelect.value || videoSelect.options[0].value;
+        scanning = true;
+        if (startBtn) startBtn.disabled = true;
+        if (stopBtn) stopBtn.disabled = false;
+
+        if (zxingReader && typeof zxingReader.reset === "function") {
+          zxingReader.reset();
+        }
+        zxingReader.decodeFromVideoDevice(
+            deviceId,
+            videoEl,
+            (res, err) => {
+              if (res) {
+                const qrInput = $("#qr-result");
+                if (qrInput) qrInput.value = res.getText();
+              }
+              const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
+              if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
+              // eslint-disable-next-line no-console
+                console.error(err);
+              }
+            },
+        );
+      };
+
+      const stopScan = () => {
+        scanning = false;
+        if (zxingReader && typeof zxingReader.reset === "function") {
+          zxingReader.reset();
+        }
+        if (stopBtn) stopBtn.disabled = true;
+        if (startBtn) startBtn.disabled = false;
+      };
+
+      if (startBtn) startBtn.addEventListener("click", startScan);
+      if (stopBtn) stopBtn.addEventListener("click", stopScan);
     }
 
     if (fileInput) {

@@ -407,16 +407,6 @@
     if (editModalInstance && editModalInstance.hide) editModalInstance.hide();
   }
 
-  /**
-   * Abre el panel/modal para agregar miembro.
-   * @return {void}
-   */
-  function openAddModal() {
-    if (!addFormEl) return;
-    addFormEl.reset();
-    if (!addModalInstance) addModalInstance = getModalInstance(addModalEl);
-    if (addModalInstance && addModalInstance.show) addModalInstance.show();
-  }
 
   /**
    * Cierra el panel/modal de agregar miembro.
@@ -538,10 +528,18 @@
       });
     }
 
-    // Botón para abrir el panel de alta
-    const openAddBtn = $("#openAddMember");
-    if (openAddBtn) {
-      openAddBtn.addEventListener("click", openAddModal);
+    // Fallback: cerrar el modal de alta con los
+    // botones que tienen data-modal-hide
+    if (addModalEl) {
+      addModalEl.addEventListener("click", (e) => {
+        const closer = e.target && e.target.closest ?
+          e.target.closest("[data-modal-hide='add-member-panel']") :
+          null;
+        if (closer) {
+          e.preventDefault();
+          closeAddModal();
+        }
+      });
     }
   });
 })();

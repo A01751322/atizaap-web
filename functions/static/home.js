@@ -118,7 +118,8 @@
     /**
      * Configura envío del formulario "Solicita tu tarjeta".
      * Envía POST a /api/solicitudes-negocios con x-www-form-urlencoded.
-     * Reutiliza la Cloud Function de solicitudesNegocios mapeando campos.
+     * Reutiliza la Cloud Function de solicitudesNegocios mapeando campos
+     * (CP -> ubicacion).
      * @return {void}
      */
     const setupSolicitaForm = () => {
@@ -129,7 +130,7 @@
       const inNombre = q("input[placeholder=\"Tu nombre\"]");
       const inCorreo = q("input[type=\"email\"]");
       const inTel = q("input[type=\"tel\"]");
-      const inColonia = q("input[placeholder=\"Tu colonia\"]");
+      const inCp = q("input[placeholder=\"00000\"]");
       const inMensaje = q("textarea");
       const btn = q("button[type=\"button\"]");
 
@@ -165,7 +166,7 @@
         const nombre = (inNombre && inNombre.value || "").trim();
         const correo = (inCorreo && inCorreo.value || "").trim();
         const telefono = (inTel && inTel.value || "").trim();
-        const colonia = (inColonia && inColonia.value || "").trim();
+        const cp = (inCp && inCp.value || "").trim();
         const mensaje = (inMensaje && inMensaje.value || "").trim();
 
         if (!nombre) {
@@ -184,7 +185,7 @@
           email: correo,
           telefono,
           tipo_negocio: "solicita_tarjeta",
-          ubicacion: colonia,
+          ubicacion: cp,
           descripcion: mensaje || "Solicitud de tarjeta desde landing.",
           beneficio: "Solicitud de tarjeta",
         };
