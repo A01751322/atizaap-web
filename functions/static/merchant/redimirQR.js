@@ -5,37 +5,30 @@
 
   // ===== Helpers =====
 
-  /**
-   * Obtiene el primer elemento que coincida con el selector.
-   * @param {string} sel - Selector CSS.
-   * @return {Element|null} Elemento encontrado o null.
-   */
+  /** Query helper
+   * @param {string} sel
+   * @return {Element|null}
+  */
   const $ = (sel) => document.querySelector(sel);
 
-  /**
-   * Deshabilita un botón, muestra un spinner y devuelve una función
-   * para restaurar su estado original.
-   * @param {HTMLButtonElement} btn - Botón objetivo.
-   * @param {string} [busyText="Procesando..."] - Texto mientras está ocupado.
-   * @return {function(): void} Función para restaurar el botón.
-   */
+  /** Botón ocupado con spinner
+   * @param {HTMLButtonElement} btn
+   * @param {string} busyText
+   * @return {Function} restore function
+  */
   const setBusy = (btn, busyText = "Procesando...") => {
     if (!btn) return () => {};
-
     const originalHTML = btn.innerHTML;
     const originalDisabled = btn.disabled;
 
     btn.disabled = true;
     btn.classList.add("opacity-60", "cursor-not-allowed");
 
-    /* spinner corto para evitar líneas largas */
-    const spinA =
-      "<span class=\"h-4 w-4 mr-2 rounded-full border-2 " +
-      "border-white border-t-transparent animate-spin\"></span>";
-    const spinWrapStart = "<span class=\"inline-flex items-center\">";
-    const spinWrapEnd = "</span>";
-
-    btn.innerHTML = spinWrapStart + spinA + busyText + spinWrapEnd;
+    const spin =
+      "<span class='h-4 w-4 mr-2 rounded-full border-2 " +
+      "border-white border-t-transparent animate-spin'></span>";
+    btn.innerHTML =
+    `<span class="inline-flex items-center">${spin}${busyText}</span>`;
 
     return () => {
       btn.disabled = originalDisabled;
@@ -44,54 +37,45 @@
     };
   };
 
-  /**
-   * Muestra un mensaje en #response con estilos por tipo.
-   * @param {"error"|"success"|"info"} type - Tipo de mensaje.
-   * @param {string} message - Texto a mostrar.
-   */
+  /** Pintar mensajes
+   * @param {string} type - 'error' | 'success' | 'info'
+   * @param {string} message
+  */
   const paintResponse = (type, message) => {
     const box = $("#response");
     if (!box) return;
 
-    const styleMap = {
+    const classes = {
       error: "border-red-300 bg-red-50 text-red-700",
       success: "border-green-300 bg-green-50 text-green-700",
       info: "border-gray-300 bg-gray-50 text-gray-700",
     };
-    const iconMap = {error: "❗️", success: "✅", info: "ℹ️"};
+    const icons = {error: "❗️", success: "✅", info: "ℹ️"};
 
-    const style = styleMap[type] || styleMap.info;
-    const icon = iconMap[type] || iconMap.info;
-
-    box.className = "mt-4 p-4 border rounded-lg text-sm " + style;
-
-    const p1 = "<p class=\"flex items-center gap-2\">";
-    const p2 = "<span class=\"text-lg\">" + icon + "</span> ";
-    const p3 = message + "</p>";
-
-    box.innerHTML = p1 + p2 + p3;
+    box.className =
+    `mt-4 p-4 border rounded-lg text-sm ${classes[type] || classes.info}`;
+    box.innerHTML =
+    `<p class="flex items-center gap-2"><span class="text-lg">${
+      icons[type] || icons.info}</span> ${message}</p>`;
     box.classList.remove("hidden");
   };
 
-  /**
-   * Extrae únicamente los dígitos de un string.
-   * @param {string} [str=""] - Entrada.
-   * @return {string} Los dígitos encontrados.
-   */
+  /** Solo dígitos
+   * @param {string} str
+   * @return {string}
+  */
   const onlyDigits = (str = "") => str.replace(/\D+/g, "");
 
-  /**
-   * Verifica un número con el algoritmo de Luhn.
-   * @param {string} [numStr=""] - Número a validar.
-   * @return {boolean} true si pasa Luhn; de lo contrario false.
-   */
+  /** Luhn para 16 dígitos
+   * @param {string} numStr
+   * @return {boolean}
+  */
   function luhnCheck(numStr = "") {
     const s = onlyDigits(numStr);
     if (s.length !== 16) return false;
 
     let sum = 0;
     let dbl = false;
-
     for (let i = s.length - 1; i >= 0; i -= 1) {
       let n = parseInt(s[i], 10);
       if (dbl) {
@@ -104,11 +88,9 @@
     return sum % 10 === 0;
   }
 
-  /**
-   * Verifica si el contexto es seguro (HTTPS o localhost).
-   * Las cámaras solo funcionan en contextos seguros.
+  /** HTTPS / localhost
    * @return {boolean}
-   */
+  */
   function isSecureContext() {
     return (
       window.isSecureContext ||
@@ -118,28 +100,25 @@
     );
   }
 
-  // ===== Lógica Principal =====
+  // ===== API helpers =====
 
-  /**
-   * Recupera el id del negocio desde localStorage y avisa si falta.
-   * @return {string|null} id del negocio o null.
-   */
+  /** Obtener id_negocio_logeado
+   * @return {string|null}
+  */
   function getIdNegocio() {
     const id = localStorage.getItem("id_negocio_logeado");
     if (!id) {
-      const msg =
-        "Error de autenticación. No se pudo identificar al negocio.";
       // eslint-disable-next-line no-console
       console.error("No se encontró 'id_negocio_logeado'.");
-      paintResponse("error", msg);
+      paintResponse("error",
+          "Error de autenticación. No se pudo identificar al negocio.");
     }
     return id;
   }
 
-  /**
-   * Carga ofertas activas y llena el <select id="oferta-select">.
-   * @param {string} idNegocio - Id del negocio.
-   * @return {Promise<void>} Promesa de finalización.
+  /** Cargar ofertas activas
+   * @param {*} idNegocio
+   * @return {Promise<void>}
    */
   async function loadActiveOffers(idNegocio) {
     const select = $("#oferta-select");
@@ -148,49 +127,43 @@
     const LAMBDA_GET_OFFERS_URL =
       "https://wzsadz6opqjtd6bsc4rcru2pgi0dzyus.lambda-url.us-east-1.on.aws/";
     const url =
-      LAMBDA_GET_OFFERS_URL +
-      "?action=getActiveOffers&id_negocio=" +
-      idNegocio;
+    `${LAMBDA_GET_OFFERS_URL}?action=getActiveOffers&id_negocio=${idNegocio}`;
 
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error("HTTP " + String(res.status));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const offers = await res.json();
 
       if (!offers || offers.length === 0) {
         select.innerHTML =
-          "<option value=\"\">No tienes ofertas activas</option>";
+        "<option value=''>No tienes ofertas activas</option>";
         select.disabled = true;
         return;
       }
 
       select.innerHTML =
-        "<option value=\"\">-- Selecciona una oferta --</option>";
-
-      offers.forEach((offer) => {
+      "<option value=''>-- Selecciona una oferta --</option>";
+      offers.forEach((o) => {
         const opt = document.createElement("option");
-        opt.value = offer.id_oferta;
-        opt.textContent = offer.titulo;
+        opt.value = o.id_oferta;
+        opt.textContent = o.titulo;
         select.appendChild(opt);
       });
-
       select.disabled = false;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Error cargando ofertas:", err);
       select.innerHTML =
-        "<option value=\"\">Error al cargar ofertas</option>";
+      "<option value=''>Error al cargar ofertas</option>";
       select.disabled = true;
       paintResponse("error", "No se pudieron cargar las ofertas.");
     }
   }
 
   /**
-   * Envía la redención de la oferta usando el número leído del QR.
-   * @param {string} idNegocio - Id del negocio.
-   * @param {string|number} idOferta - Id de la oferta.
-   * @param {string} cardNumberFromQR - Número de tarjeta (del QR).
-   * @return {Promise<void>} Promesa de finalización.
+   * @param {*} idNegocio
+   * @param {*} idOferta
+   * @param {*} cardNumberFromQR
    */
   async function submitRedemption(idNegocio, idOferta, cardNumberFromQR) {
     const btn = $("#submitBtn");
@@ -198,10 +171,10 @@
 
     const LAMBDA_REDEEM_URL =
       "https://m6yveslq32cdzevmqzvhyyab7u0xskvg.lambda-url.us-east-1.on.aws/";
-    const url = LAMBDA_REDEEM_URL + "?action=redeemOffer";
+    const url = `${LAMBDA_REDEEM_URL}?action=redeemOffer`;
 
     try {
-      const bodyObj = {
+      const body = {
         id_oferta: parseInt(idOferta, 10),
         id_negocio: parseInt(idNegocio, 10),
         cardNumber: cardNumberFromQR,
@@ -210,245 +183,178 @@
       const res = await fetch(url, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(bodyObj),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        const eMsg = data.message || "Error " + String(res.status);
-        throw new Error(eMsg);
-      }
+      if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
 
-      const successMsg =
-        data.message || "¡Oferta redimida con éxito!";
-      paintResponse("success", successMsg);
-
+      paintResponse("success", data.message || "¡Oferta redimida con éxito!");
       const qrInput = $("#qr-result");
       if (qrInput) qrInput.value = "";
-
       const offerSelect = $("#oferta-select");
       if (offerSelect) offerSelect.selectedIndex = 0;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("Error al redimir:", err);
-      let msg = "No se pudo completar la redención.";
-      if (err && err.message) {
-        msg = err.message;
-      }
-      paintResponse("error", msg);
+      paintResponse("error", err?.message ||
+        "No se pudo completar la redención.");
     } finally {
       restore();
     }
   }
 
-  // ===== Inicialización =====
+  // ===== Init =====
+
   document.addEventListener("DOMContentLoaded", () => {
+    // Quita loader
     const loader = $("#loader-overlay");
     if (loader) loader.remove();
 
+    // Ofertas
     const idNegocio = getIdNegocio();
     if (idNegocio) loadActiveOffers(idNegocio);
 
-    /* Botón Redimir (valor viene del input que llena el escáner QR) */
+    // Botón Redimir
     const submitBtn = $("#submitBtn");
     if (submitBtn) {
       submitBtn.addEventListener("click", () => {
-        const offerSelect = $("#oferta-select");
-        const qrInput = $("#qr-result");
-
-        const idOferta = offerSelect ? offerSelect.value : "";
-        const cardNumber = qrInput ? qrInput.value : "";
+        const idOferta = $("#oferta-select")?.value || "";
+        const cardNumber = $("#qr-result")?.value || "";
         const digits = onlyDigits(cardNumber);
 
-        if (!idNegocio) {
-          paintResponse("error", "Error de autenticación.");
-          return;
-        }
-        if (!idOferta) {
-          paintResponse("error", "Selecciona una oferta.");
-          return;
-        }
+        if (!idNegocio) return paintResponse("error", "Error de autenticación");
+        if (!idOferta) return paintResponse("error", "Selecciona una oferta.");
         if (!cardNumber) {
-          paintResponse(
-              "error",
-              "Escanea o introduce el QR del cliente primero.",
-          );
-          return;
+          return paintResponse("error",
+              "Escanea o introduce el QR del cliente primero.");
         }
         if (digits.length !== 16) {
-          paintResponse(
-              "error",
-              "El QR no contiene un número de tarjeta válido (16 dígitos).",
-          );
-          return;
+          return paintResponse("error", "El QR debe contener 16 dígitos.");
         }
         if (!luhnCheck(digits)) {
-          paintResponse(
-              "error",
-              "El número de tarjeta del QR no es válido.",
-          );
-          return;
+          return paintResponse("error",
+              "El número de tarjeta del QR no es válido.");
         }
 
         submitRedemption(idNegocio, idOferta, cardNumber);
       });
     }
 
-    // Si tienes una función global para iniciar el lector QR,
-    // puedes llamarla aquí y pasarle el id del input:
-    // if (typeof initQrScanner === "function") {
-    //   initQrScanner({ resultInputId: "qr-result" });
-    // }
-
-    let zxingReader;
-
-    if (!zxingReader &&
-        window.ZXing &&
-        window.ZXing.BrowserMultiFormatReader) {
-      zxingReader = new window.ZXing.BrowserMultiFormatReader();
-    }
-
+    // ===== ZXing / Cámara =====
     const videoEl = document.getElementById("qr-video");
     const videoSelect = document.getElementById("camera-select");
-    const fileInput = document.getElementById("qr-file");
-    // Seguridad: las cámaras solo deben inicializarse en contextos seguros
-    if (!isSecureContext()) {
-      paintResponse("error",
-          "Se requiere HTTPS o localhost para usar la cámara.");
-    }
+    const startBtn = document.getElementById("start-scan");
+    const stopBtn = document.getElementById("stop-scan");
+    const hintsEl = document.getElementById("qr-hints");
 
-    if (videoSelect) {
-      navigator.mediaDevices.enumerateDevices()
-          .then((devices) => {
-            devices.forEach((device) => {
-              if (device.kind === "videoinput") {
-                const option = document.createElement("option");
-                option.value = device.deviceId;
-                const label = device.label || "Camera " +
-                (videoSelect.length + 1);
-                option.text = label;
-                videoSelect.appendChild(option);
-              }
-            });
-          });
-    }
-
+    let zxingReader = null;
     let scanning = false;
 
-    if (zxingReader && videoSelect && videoEl) {
-      // Cambiar de cámara mientras se está escaneando reinicia el lector
+    // Popular cámaras (sin labels hasta dar permiso)
+    if (videoSelect && navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        devices
+            .filter((d) => d.kind === "videoinput")
+            .forEach((d, i) => {
+              const opt = document.createElement("option");
+              opt.value = d.deviceId || "";
+              opt.textContent = d.label || `Camera ${i + 1}`;
+              videoSelect.appendChild(opt);
+            });
+      });
+    }
+
+    // Rellena labels/ids después de conceder permiso
+    const refreshDevices = async () => {
+      if (!zxingReader || !videoSelect) return;
+      try {
+        const devices = await zxingReader.listVideoInputDevices();
+        if (!devices?.length) return;
+        const prev = videoSelect.value;
+        videoSelect.innerHTML = "";
+        devices.forEach((d, i) => {
+          const opt = document.createElement("option");
+          opt.value = d.deviceId || "";
+          opt.textContent = d.label || `Camera ${i + 1}`;
+          videoSelect.appendChild(opt);
+        });
+        if (prev && [...videoSelect.options].some((o) => o.value === prev)) {
+          videoSelect.value = prev;
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("No se pudieron listar cámaras:", err);
+      }
+    };
+
+    // Cambiar de cámara mientras se escanea
+    if (videoSelect && videoEl) {
       videoSelect.addEventListener("change", () => {
-        if (!scanning) return;
-        if (zxingReader && typeof zxingReader.reset === "function") {
-          zxingReader.reset();
-        }
+        if (!scanning || !zxingReader) return;
+        if (typeof zxingReader.reset === "function") zxingReader.reset();
         const deviceId = videoSelect.value || null;
-        zxingReader.decodeFromVideoDevice(
-            deviceId,
-            videoEl,
-            (res, err) => {
-              if (res) {
-                const qrInput = $("#qr-result");
-                if (qrInput) qrInput.value = res.getText();
-              }
-              const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
-              if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
-              // eslint-disable-next-line no-console
-                console.error(err);
-              }
-            },
-        );
-      });
-
-      // Botones Iniciar / Detener
-      const startBtn = document.getElementById("start-scan");
-      const stopBtn = document.getElementById("stop-scan");
-
-      const startScan = () => {
-        if (!isSecureContext()) {
-          paintResponse("error",
-              "Se requiere HTTPS o localhost para usar la cámara.");
-          return;
-        }
-        if (!videoSelect || videoSelect.options.length === 0) {
-          paintResponse("error", "No se encontró ninguna cámara.");
-          return;
-        }
-        const deviceId = videoSelect.value || videoSelect.options[0].value;
-        scanning = true;
-        if (startBtn) startBtn.disabled = true;
-        if (stopBtn) stopBtn.disabled = false;
-
-        if (zxingReader && typeof zxingReader.reset === "function") {
-          zxingReader.reset();
-        }
-        zxingReader.decodeFromVideoDevice(
-            deviceId,
-            videoEl,
-            (res, err) => {
-              if (res) {
-                const qrInput = $("#qr-result");
-                if (qrInput) qrInput.value = res.getText();
-              }
-              const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
-              if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
-              // eslint-disable-next-line no-console
-                console.error(err);
-              }
-            },
-        );
-      };
-
-      const stopScan = () => {
-        scanning = false;
-        if (zxingReader && typeof zxingReader.reset === "function") {
-          zxingReader.reset();
-        }
-        if (stopBtn) stopBtn.disabled = true;
-        if (startBtn) startBtn.disabled = false;
-      };
-
-      if (startBtn) startBtn.addEventListener("click", startScan);
-      if (stopBtn) stopBtn.addEventListener("click", stopScan);
-    }
-
-    if (fileInput) {
-      fileInput.addEventListener("change", (event) => {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
-
-        if (!zxingReader &&
-            window.ZXing &&
-            window.ZXing.BrowserMultiFormatReader) {
-          zxingReader = new window.ZXing.BrowserMultiFormatReader();
-        }
-
-        const file = files[0];
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0);
-
-          const luminanceSource =
-            new window.ZXing.HTMLCanvasElementLuminanceSource(canvas);
-          const binaryBitmap =
-          new window.ZXing.BinaryBitmap(
-              new window.ZXing.HybridBinarizer(luminanceSource),
-          );
-
-          try {
-            const result = zxingReader.decode(binaryBitmap);
-            const qrInput = $("#qr-result");
-            if (qrInput) qrInput.value = result.getText();
-          } catch (e) {
-            paintResponse("error", "No se pudo leer el QR de la imagen.");
-          }
-        };
-        img.src = URL.createObjectURL(file);
+        zxingReader.decodeFromVideoDevice(deviceId, videoEl, onScan);
       });
     }
+
+    // Iniciar / Detener
+    const onScan = (res, err) => {
+      if (res) {
+        const qrInput = $("#qr-result");
+        if (qrInput) qrInput.value = res.getText();
+        paintResponse("success", "QR leído correctamente.");
+        // Si quieres mantener la cámara encendida, comenta la siguiente línea:
+        stopScan();
+        return;
+      }
+      const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
+      if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
+        // eslint-disable-next-line no-console
+        console.error(err);
+        if (hintsEl) hintsEl.textContent = err.message || String(err);
+      }
+    };
+
+    const startScan = async () => {
+      if (!isSecureContext()) {
+        paintResponse("error",
+            "Se requiere HTTPS o localhost para usar la cámara.");
+        return;
+      }
+      // Instancia ZXing si hace falta
+      if (!zxingReader && window.ZXing?.BrowserMultiFormatReader) {
+        zxingReader = new window.ZXing.BrowserMultiFormatReader();
+      }
+      if (!zxingReader) {
+        paintResponse("error", "No se pudo inicializar el lector QR (ZXing).");
+        return;
+      }
+
+      scanning = true;
+      if (startBtn) startBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = false;
+      if (hintsEl) hintsEl.textContent = "";
+      const sel = videoSelect?.value;
+      const deviceId = sel ? sel : null;
+      // null -> default cam y dispara permiso
+
+      if (typeof zxingReader.reset === "function") zxingReader.reset();
+      zxingReader.decodeFromVideoDevice(deviceId, videoEl, onScan);
+
+      // Tras permiso, actualiza labels y opciones reales
+      await refreshDevices();
+    };
+
+    const stopScan = () => {
+      scanning = false;
+      if (stopBtn) stopBtn.disabled = true;
+      if (startBtn) startBtn.disabled = false;
+      if (zxingReader &&
+        typeof zxingReader.reset === "function") zxingReader.reset();
+    };
+
+    if (startBtn) startBtn.addEventListener("click", startScan);
+    if (stopBtn) stopBtn.addEventListener("click", stopScan);
   });
 })();

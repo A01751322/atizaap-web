@@ -8,20 +8,26 @@
     <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body class="pt-14">
+    <!-- Loader -->
     <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
       <img src="/images/logob.png" alt="Cargando..." class="w-16 h-16 mb-3 animate-pulse">
       <p class="text-gray-600 font-medium">Cargando panel...</p>
     </div>
+
+    <!-- Navbar placeholder -->
     <div id="navbar-placeholder"
       data-partial="/partials/navbarmerchant.html"
       data-content-id="page-content"
       data-slot-selector="#content-slot"
       data-fallback-selector=".border-dashed.rounded-lg">
-    </div> 
-    <main id="page-content" data-active-tab="qr">
+    </div>
+
+    <main id="page-content" data-active-tab="qr" class="max-w-4xl mx-auto px-4">
       <div id="tabs-placeholder" class="mb-4"></div>
+
       <h1 class="text-3xl font-bold">Redimir Oferta (QR)</h1>
-      
+
+      <!-- 1) Selección de oferta -->
       <div class="mb-4">
         <label for="oferta-select" class="block mb-2 text-sm font-medium text-gray-900">1. Selecciona la oferta a redimir</label>
         <select id="oferta-select" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500" disabled>
@@ -29,31 +35,39 @@
         </select>
       </div>
 
+      <!-- 2) Escáner QR -->
       <section id="qr-section" class="space-y-4">
         <label class="block mb-1 text-sm font-medium text-gray-900">2. Escanea el QR del cliente</label>
+
         <div class="flex items-center gap-3 flex-wrap">
           <label for="camera-select" class="text-sm font-medium">Cámara:</label>
           <select id="camera-select" class="border rounded px-3 py-2 text-sm"></select>
           <button id="start-scan" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 text-sm">Iniciar</button>
           <button id="stop-scan" class="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700 text-sm" disabled>Detener</button>
         </div>
+
         <div class="relative w-full max-w-md aspect-[3/4] bg-gray-900 rounded overflow-hidden mx-auto">
           <video id="qr-video" class="w-full h-full object-cover" autoplay muted playsinline></video>
           <div class="pointer-events-none absolute inset-0 grid place-items-center">
             <div class="w-3/4 aspect-square border-2 border-green-400/80 rounded-md"></div>
           </div>
         </div>
+
         <div class="space-y-1">
           <p class="text-sm text-gray-600">Número de Tarjeta (Resultado QR):</p>
-          <input id="qr-result" type="text" class="w-full border rounded px-3 py-2 bg-gray-100 text-center" placeholder="Esperando lectura QR..." readonly> 
+          <input id="qr-result" type="text" class="w-full border rounded px-3 py-2 bg-gray-100 text-center" placeholder="Esperando lectura QR..." readonly>
           <div class="text-xs text-gray-500" id="qr-hints"></div>
         </div>
+
         <button id="submitBtn" class="mt-2 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Redimir Oferta Seleccionada</button>
         <div id="response" class="mt-2 p-4 border rounded-lg hidden"></div>
       </section>
     </main>
+
+    <!-- Scripts -->
     <script defer src="/static/merchant/navbar.js"></script>
     <script defer src="https://unpkg.com/@zxing/library@0.20.0"></script>
     <script defer src="/static/merchant/redimirQR.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+  </body>
 </html>

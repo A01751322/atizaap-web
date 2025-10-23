@@ -96,9 +96,6 @@
         </td>
         <td class="px-6 py-3">${n.representante || "-"}</td>
         <td class="px-6 py-3">${n.categoria || "-"}</td>
-        {/* Status column REMOVED */}
-        {/* Join Date column REMOVED (not in data) */}
-        {/* Notes column REMOVED (not in data) */}
         <td class="px-6 py-3 text-right whitespace-nowrap">
           <button
             type="button"
