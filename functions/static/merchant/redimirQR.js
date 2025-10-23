@@ -104,6 +104,20 @@
     return sum % 10 === 0;
   }
 
+  /**
+   * Verifica si el contexto es seguro (HTTPS o localhost).
+   * Las cámaras solo funcionan en contextos seguros.
+   * @return {boolean}
+   */
+  function isSecureContext() {
+    return (
+      window.isSecureContext ||
+      location.protocol === "https:" ||
+      location.hostname === "localhost" ||
+      location.hostname === "127.0.0.1"
+    );
+  }
+
   // ===== Lógica Principal =====
 
   /**
@@ -285,5 +299,109 @@
     // if (typeof initQrScanner === "function") {
     //   initQrScanner({ resultInputId: "qr-result" });
     // }
+
+    let zxingReader;
+
+    if (!zxingReader &&
+        window.ZXing &&
+        window.ZXing.BrowserMultiFormatReader) {
+      zxingReader = new window.ZXing.BrowserMultiFormatReader();
+    }
+
+    const videoEl = document.getElementById("qr-video");
+    const videoSelect = document.getElementById("camera-select");
+    const fileInput = document.getElementById("qr-file");
+    // Seguridad: las cámaras solo deben inicializarse en contextos seguros
+    if (!isSecureContext()) {
+      paintResponse("error",
+          "Se requiere HTTPS o localhost para usar la cámara.");
+    }
+
+    if (videoSelect) {
+      navigator.mediaDevices.enumerateDevices()
+          .then((devices) => {
+            devices.forEach((device) => {
+              if (device.kind === "videoinput") {
+                const option = document.createElement("option");
+                option.value = device.deviceId;
+                const label = device.label || "Camera " +
+                (videoSelect.length + 1);
+                option.text = label;
+                videoSelect.appendChild(option);
+              }
+            });
+          });
+    }
+
+    if (zxingReader && videoSelect && videoEl) {
+      videoSelect.addEventListener("change", () => {
+        if (zxingReader) {
+          zxingReader.reset();
+        }
+
+        const deviceId = videoSelect.value;
+
+        zxingReader.decodeFromVideoDevice(
+            deviceId || null,
+            videoEl,
+            (res, err) => {
+              if (res) {
+                const qrInput = $("#qr-result");
+                if (qrInput) qrInput.value = res.getText();
+              }
+              const NotFoundEx = window.ZXing && window.ZXing.NotFoundException;
+              if (err && !(NotFoundEx && err instanceof NotFoundEx)) {
+                // eslint-disable-next-line no-console
+                console.error(err);
+              }
+            },
+        );
+      });
+
+      // Start with the first camera by default
+      if (videoSelect.options.length > 0) {
+        videoSelect.value = videoSelect.options[0].value;
+        videoSelect.dispatchEvent(new Event("change"));
+      }
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener("change", (event) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        if (!zxingReader &&
+            window.ZXing &&
+            window.ZXing.BrowserMultiFormatReader) {
+          zxingReader = new window.ZXing.BrowserMultiFormatReader();
+        }
+
+        const file = files[0];
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+
+          const luminanceSource =
+            new window.ZXing.HTMLCanvasElementLuminanceSource(canvas);
+          const binaryBitmap =
+          new window.ZXing.BinaryBitmap(
+              new window.ZXing.HybridBinarizer(luminanceSource),
+          );
+
+          try {
+            const result = zxingReader.decode(binaryBitmap);
+            const qrInput = $("#qr-result");
+            if (qrInput) qrInput.value = result.getText();
+          } catch (e) {
+            paintResponse("error", "No se pudo leer el QR de la imagen.");
+          }
+        };
+        img.src = URL.createObjectURL(file);
+      });
+    }
   });
 })();

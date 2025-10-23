@@ -127,7 +127,7 @@ app.get("/merchant", (req, res) => renderHtml(res, "web-merchant/inicio.html"));
 
 // --- Ruta Datos ---
 app.get("/merchant/datos",
-    (req, res) => renderHtml(res, "web-merchant/datos.html"));
+    (req, res) => renderHtml(res, "web-merchant/chatbot.html"));
 
 // --- Ruta promociones ---
 app.get("/merchant/promociones",

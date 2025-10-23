@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Joven - Beneficio Joven Atizapán</title>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* Ajusta altura basada en viewport menos navbar y área de input */
+        #chat-container {
+            /* Vh (viewport height) menos altura estimada de navbar (~3.5rem/56px) y área input (~4.5rem/72px) + padding */
+            height: calc(100vh - 8rem); /* Ajusta este valor si es necesario */
+            scroll-behavior: smooth; /* Para scroll suave */
+        }
+        /* Estilos de Burbujas */
+        .chat-bubble {
+            max-width: 80%; /* Un poco más anchas */
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+            word-wrap: break-word; /* Romper palabras largas */
+            line-height: 1.5; /* Mejor legibilidad */
+        }
+        .user-bubble {
+            background-color: #DBEAFE; /* Azul claro */
+            color: #1E3A8A; /* Azul oscuro */
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .ai-bubble {
+            background-color: #F3F4F6; /* Gris claro */
+            color: #1F2937; /* Gris oscuro */
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+        }
+        /* Estilos Markdown (Ajusta según tu CSS global si prefieres) */
+        .ai-bubble h1, .ai-bubble h2, .ai-bubble h3 { margin-top: 0.75em; margin-bottom: 0.25em; font-weight: 600; line-height: 1.3; }
+        .ai-bubble h1 { font-size: 1.2em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.2em;}
+        .ai-bubble h2 { font-size: 1.1em; }
+        .ai-bubble h3 { font-size: 1em; }
+        .ai-bubble ul, .ai-bubble ol { margin-left: 1.5em; margin-top: 0.5em; margin-bottom: 0.5em; padding-left: 0.5em; }
+        .ai-bubble li { margin-bottom: 0.3em; }
+        .ai-bubble p { margin-bottom: 0.6em; }
+        .ai-bubble strong { font-weight: 600; }
+        .ai-bubble code { background-color: #E5E7EB; padding: 0.1em 0.3em; border-radius: 0.25rem; font-size: 0.9em; }
+        .ai-bubble pre { background-color: #E5E7EB; padding: 0.5em; border-radius: 0.25rem; overflow-x: auto; margin-bottom: 0.5em; font-size: 0.9em;}
+        .ai-bubble pre code { background-color: transparent; padding: 0; }
+        /* Indicador Typing */
+        .typing-indicator span { display: inline-block; width: 8px; height: 8px; margin: 0 2px; background-color: #9CA3AF; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+    </style>
+</head>
+<body class="pt-14 bg-gray-100 dark:bg-gray-900 flex flex-col h-screen overflow-hidden">
+    <div id="loader-overlay" class="fixed inset-0 flex items-center justify-center bg-white z-50 dark:bg-gray-800"><p class="text-gray-600 dark:text-gray-400">Cargando Asistente...</p></div>
+
+    <div id="navbar-placeholder" data-partial="/partials/navbarmerchant.html" data-content-id="page-content" data-slot-selector="#content-slot"></div>
+
+    <main id="page-content" class="flex-grow flex flex-col p-0 overflow-hidden">
+        <div id="chat-container" class="flex-grow overflow-y-auto p-4 space-y-2 bg-white dark:bg-gray-800">
+            <div class="chat-bubble ai-bubble">
+                ¡Hola! Soy Asistente Joven. Estoy aquí para ayudarte a entender tus datos del programa 'Beneficio Joven Atizapán'. ¿En qué puedo apoyarte hoy?
+            </div>
+            </div>
+
+        <div id="typing-indicator" class="hidden p-3 flex items-center border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div class="typing-indicator"><span></span><span></span><span></span></div>
+            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Asistente Joven está escribiendo...</span>
+        </div>
+
+        <div class="p-4 bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <input type="text" id="chat-input" placeholder="Escribe tu consulta aquí..." autocomplete="off"
+                       class="flex-grow block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                <button id="send-button" title="Enviar mensaje"
+                        class="inline-flex justify-center p-2 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100 dark:text-blue-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-6 h-6 rotate-90 rtl:-rotate-90" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
+                        <path d="m17.914 18.594-8-18a1 1 0 0 0-1.828 0l-8 18a1 1 0 0 0 1.157 1.376L8 18.281V9a1 1 0 0 1 2 0v9.281l6.758 1.689a1 1 0 0 0 1.156-1.376Z"/>
+                    </svg>
+                    <span class="sr-only">Enviar</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="/static/merchant/navbar.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script defer src="/static/merchant/chatbot.js"></script> </body>
+</html>

@@ -4,7 +4,10 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       { "source": "/api/solicitudes-negocios", "function": "solicitudesNegocios" },
-      { "source": "**", "function": "app" }
+      { "source": "/auth/**",            "function": "app" },
+      { "source": "/admin/**",           "function": "app" },
+      { "source": "/merchant/**",        "function": "app" },
+      { "source": "**",                  "function": "app" }
     ],
     "site": "atizaap-web-v1",
     "cleanUrls": true,
@@ -14,11 +17,11 @@
         "headers": [
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js; script-src-elem 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js; script-src-attr 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src-attr 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://challenges.cloudflare.com https://www.google.com https://www.youtube.com; connect-src 'self' https://challenges.cloudflare.com https://us-central1-atizaap-web-v1.cloudfunctions.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://rm65wsuarfqqx43ocb6n5ruawi0mjfrr.lambda-url.us-east-1.on.aws https://*.lambda-url.us-east-1.on.aws; form-action 'self';"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'sha256-LGKnXX/Lx+66G24Q1lhRAlaoLQit8vJwEIsCjukhK8=' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://www.gstatic.com; script-src-elem 'self' 'unsafe-inline' 'sha256-LGKnXX/Lx+66G24Q1lhRAlaoLQit8vJwEIsCjukhK8=' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://www.gstatic.com; script-src-attr 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src-attr 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; frame-src https://challenges.cloudflare.com https://www.google.com https://www.youtube.com; connect-src 'self' https://challenges.cloudflare.com https://us-central1-atizaap-web-v1.cloudfunctions.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://rm65wsuarfqqx43ocb6n5ruawi0mjfrr.lambda-url.us-east-1.on.aws https://*.lambda-url.us-east-1.on.aws https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; form-action 'self';"
           },
           { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+          { "key": "X-Frame-Options",        "value": "SAMEORIGIN" },
+          { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
         ]
       }
     ]
