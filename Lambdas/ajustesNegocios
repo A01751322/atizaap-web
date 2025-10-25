@@ -1,0 +1,219 @@
+import mysql from 'mysql2/promise';
+// Optional: Import bcryptjs if implementing password hashing
+// import bcrypt from 'bcryptjs';
+
+// --- Database Connection Pool ---
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  timezone: '+00:00' // Use UTC or your preferred timezone
+});
+
+// --- Helper Function ---
+/** Gets the owner's user ID associated with a given business ID. */
+const getOwnerUserId = async (idNegocio) => {
+    if (!idNegocio) throw new Error("ID de Negocio inválido para buscar propietario.");
+    const [rows] = await pool.query("SELECT id_usuario FROM negocio WHERE id_negocio = ?", [idNegocio]);
+    if (rows.length === 0) {
+        const err = new Error("NegocioNoEncontrado");
+        err.statusCode = 404;
+        throw err;
+    }
+    return rows[0].id_usuario;
+};
+
+// --- Main Lambda Handler ---
+export const handler = async (event) => {
+  // --- CORS Headers ---
+  const headers = {
+    "Access-Control-Allow-Origin": "*", // Restrict in production
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Expose-Headers": "Content-Disposition", // If needed later
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+  };
+
+  // --- Handle CORS Preflight ---
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  // --- Extract Request Details ---
+  const action = event.queryStringParameters?.action;
+  const idNegocio = event.queryStringParameters?.id_negocio;
+  const method = event.requestContext.http.method;
+  let body = {};
+
+  // --- Parse Body ---
+  if (method === 'POST') {
+    try {
+        body = JSON.parse(event.body || '{}');
+    } catch (parseError) {
+        console.error("JSON Parsing Error:", parseError);
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "Cuerpo JSON inválido." }) };
+    }
+  }
+
+  // --- Basic Validation ---
+  if (!action || !idNegocio) {
+    return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan 'action' o 'id_negocio'." }) };
+  }
+
+  try {
+    // --- Get Owner ID (Required for most actions) ---
+    let ownerUserId;
+    try {
+        ownerUserId = await getOwnerUserId(idNegocio);
+    } catch (ownerError) {
+        if (ownerError.message === "NegocioNoEncontrado") {
+             return { statusCode: 404, headers, body: JSON.stringify({ message: "El negocio no existe." }) };
+        }
+        // Log unexpected errors during owner lookup
+        console.error(`Error fetching owner for id_negocio ${idNegocio}:`, ownerError);
+        throw ownerError; // Re-throw other errors to be caught by main handler
+    }
+
+    // --- ACTION ROUTING ---
+
+    // 1. GET Profile
+    if (method === 'GET' && action === 'getProfile') {
+      const [rows] = await pool.query(
+        "SELECT nombre_negocio, email, telefono, ubicacion, descripcion FROM negocio WHERE id_negocio = ?",
+        [idNegocio]
+      );
+      // This check is slightly redundant due to getOwnerUserId, but safe
+      if (rows.length === 0) return { statusCode: 404, headers, body: JSON.stringify({ message: "Negocio no encontrado" }) };
+      const profileData = {
+        fullName: rows[0].nombre_negocio, email: rows[0].email, phone: rows[0].telefono,
+        address: rows[0].ubicacion, description: rows[0].descripcion
+      };
+      return { statusCode: 200, headers, body: JSON.stringify(profileData) };
+    }
+
+    // 2. UPDATE Profile
+    if (method === 'POST' && action === 'updateProfile') {
+      const { fullName, email, phone, address, description } = body;
+      if (!fullName || !email || !phone || !address) return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan campos requeridos (Nombre, Correo, Teléfono, Dirección)" }) };
+      await pool.query(
+        `UPDATE negocio SET nombre_negocio = ?, email = ?, telefono = ?, ubicacion = ?, descripcion = ? WHERE id_negocio = ?`,
+        [fullName, email, phone, address, description || '', idNegocio]
+      );
+      return { statusCode: 200, headers, body: JSON.stringify({ message: "Perfil actualizado correctamente" }) };
+    }
+
+    // 3. GET Team Members
+    if (method === 'GET' && action === 'getTeamMembers') {
+      const [teamRows] = await pool.query(
+          `SELECT id_usuario, nombre, correo FROM usuario_web WHERE id_creador = ? OR id_usuario = ? ORDER BY nombre`,
+          [ownerUserId, ownerUserId]
+      );
+      const teamMembers = teamRows.map(user => ({
+          id: user.id_usuario, name: user.nombre, email: user.correo,
+          joinDate: null, // Placeholder
+          isOwner: parseInt(user.id_usuario, 10) === parseInt(ownerUserId, 10)
+      }));
+      return { statusCode: 200, headers, body: JSON.stringify(teamMembers) };
+    }
+
+    // 4. UPDATE Team Member
+    if (method === 'POST' && action === 'updateTeamMember') {
+      const { targetUserId, name, email } = body;
+      if (!targetUserId || !name || !email) return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan datos (ID, Nombre, Correo)" }) };
+      if (parseInt(targetUserId, 10) === parseInt(ownerUserId, 10)) return { statusCode: 403, headers, body: JSON.stringify({ message: "No se puede editar al propietario." }) };
+      const [results] = await pool.query("UPDATE usuario_web SET nombre = ?, correo = ? WHERE id_usuario = ? AND id_creador = ?", [name, email, targetUserId, ownerUserId]);
+      if (results.affectedRows === 0) return { statusCode: 404, headers, body: JSON.stringify({ message: "Miembro no encontrado o no autorizado." }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ message: "Miembro actualizado" }) };
+    }
+
+    // 5. DELETE Team Member
+    if (method === 'POST' && action === 'deleteTeamMember') {
+      const { targetUserId } = body;
+      if (!targetUserId) return { statusCode: 400, headers, body: JSON.stringify({ message: "Falta ID" }) };
+      if (parseInt(targetUserId, 10) === parseInt(ownerUserId, 10)) return { statusCode: 400, headers, body: JSON.stringify({ message: "No puedes eliminar al propietario" }) };
+      const connection = await pool.getConnection();
+      await connection.beginTransaction();
+      try {
+          // Delete roles first
+          await connection.query("DELETE FROM usuario_rol WHERE id_usuario = ?", [targetUserId]);
+          // Delete user (authorized by id_creador)
+          const [results] = await connection.query("DELETE FROM usuario_web WHERE id_usuario = ? AND id_creador = ?", [targetUserId, ownerUserId]);
+          if (results.affectedRows === 0) {
+               await connection.rollback(); connection.release();
+               return { statusCode: 404, headers, body: JSON.stringify({ message: "Miembro no encontrado o no autorizado." }) };
+          }
+          await connection.commit(); connection.release();
+          return { statusCode: 200, headers, body: JSON.stringify({ message: "Miembro eliminado" }) };
+      } catch (deleteError) {
+          await connection.rollback(); connection.release();
+          console.error("Error deleting member:", deleteError);
+          if (deleteError.errno === 1451) return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: No se puede eliminar. El miembro tiene datos asociados.", error: deleteError.message }) };
+          return { statusCode: 500, headers, body: JSON.stringify({ message: "Error al eliminar miembro.", error: deleteError.message }) };
+      }
+    }
+
+    // 6. ADD TEAM MEMBER (POST)
+    if (method === 'POST' && action === 'addTeamMember') {
+        const { name, email } = body;
+        if (!name || !email) return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan Nombre o Correo." }) };
+        if (!/\S+@\S+\.\S+/.test(email)) return { statusCode: 400, headers, body: JSON.stringify({ message: "Formato de correo inválido." }) };
+
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+        try {
+            // A. Check existing user
+            const [existingUser] = await connection.query("SELECT id_usuario FROM usuario_web WHERE correo = ?", [email]);
+            if (existingUser.length > 0) {
+                 await connection.rollback(); connection.release();
+                 return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: El correo ya está registrado." }) };
+            }
+
+            // B. Create user
+            // !! SECURITY: Replace with secure password generation/hashing !!
+            const temporaryPassword = "cambiame123!";
+            const hashedPassword = temporaryPassword; // Replace with await bcrypt.hash(temporaryPassword, salt);
+
+            const [userResult] = await connection.query(
+                `INSERT INTO usuario_web (nombre, correo, contrasena, id_creador) VALUES (?, ?, ?, ?)`,
+                [name, email, hashedPassword, ownerUserId] // Link to owner
+            );
+            const newUserId = userResult.insertId;
+            if (!newUserId) throw new Error("Fallo al crear usuario.");
+
+            // C. Assign role (assuming ID 3 = 'negocio') - Check your 'rol' table
+            await connection.query(`INSERT INTO usuario_rol (id_usuario, id_rol) VALUES (?, ?)`, [newUserId, 3]);
+
+            await connection.commit(); connection.release();
+            return { statusCode: 201, headers, body: JSON.stringify({ message: "Miembro agregado exitosamente.", newUserId: newUserId }) };
+
+        } catch (err) {
+            await connection.rollback(); connection.release();
+            console.error("Error adding team member:", err);
+            if (err.code === 'ER_DUP_ENTRY') return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: El correo ya existe." }) };
+            if (err.errno === 1452) return { statusCode: 400, headers, body: JSON.stringify({ message: "Error de referencia al asignar rol.", error: err.message }) };
+            return { statusCode: 500, headers, body: JSON.stringify({ message: "Error interno al agregar.", error: err.message }) };
+        }
+    }
+
+    // --- No Matching Action ---
+    return { statusCode: 404, headers, body: JSON.stringify({ message: "Acción no válida o método incorrecto." }) };
+
+  } catch (error) {
+    // --- General Error Handling ---
+    console.error(`Lambda Error (Action: ${action}, Method: ${method}, IDNegocio: ${idNegocio}):`, error);
+    if (error.code === 'ER_DUP_ENTRY' && method === 'POST' && (action === 'updateProfile' || action === 'updateTeamMember')) {
+        return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: El correo electrónico ya está en uso." }) };
+    }
+    if (error.message === "NegocioNoEncontrado" || error.statusCode === 404) {
+        return { statusCode: 404, headers, body: JSON.stringify({ message: "Negocio no encontrado." }) };
+    }
+    // Handle JSON parsing errors if not caught earlier
+    if (error instanceof SyntaxError && method === 'POST') {
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "Cuerpo JSON inválido." }) };
+    }
+    return { statusCode: 500, headers, body: JSON.stringify({ message: "Error interno inesperado.", error: error.message }) };
+  }
+};

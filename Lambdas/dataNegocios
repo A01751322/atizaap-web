@@ -1,0 +1,159 @@
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+const formatChartData = (rows, labelKey, dataKey) => {
+  const labels = [];
+  const data = [];
+  for (const row of rows) {
+    labels.push(row[labelKey]);
+    data.push(row[dataKey]);
+  }
+  return { labels, data };
+};
+
+export const handler = async (event) => {
+  
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+  };
+
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  const action = event.queryStringParameters?.action;
+  const idNegocio = event.queryStringParameters?.id_negocio;
+
+  if (action !== 'getDashboard') {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ message: "Endpoint no encontrado" }),
+    };
+  }
+
+  if (!idNegocio) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ message: "Parámetro 'id_negocio' es requerido" }),
+    };
+  }
+
+  try {
+    const promosActivasQuery = pool.query(
+      "SELECT COUNT(*) as total FROM oferta WHERE id_negocio = ? AND id_estado = 1",
+      [idNegocio]
+    );
+
+    const promosRedimidas30dQuery = pool.query(
+      "SELECT COUNT(*) as total FROM redencion WHERE id_negocio = ? AND fecha_redencion >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND estado_redencion = 'redimida'",
+      [idNegocio]
+    );
+    
+    const promosRedimidasTotalQuery = pool.query(
+      "SELECT COUNT(*) as total FROM redencion WHERE id_negocio = ? AND estado_redencion = 'redimida'",
+      [idNegocio]
+    );
+
+    // ##### CORRECCIÓN AQUÍ #####
+    // Se cambió para que haga JOIN con 'usuario_app'
+    const clientesUnicos30dQuery = pool.query(
+      `SELECT COUNT(DISTINCT r.id_usuario) as total 
+       FROM redencion r
+       JOIN usuario_app u ON r.id_usuario = u.id_usuario
+       WHERE r.id_negocio = ? AND r.fecha_redencion >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND r.estado_redencion = 'redimida'`,
+      [idNegocio]
+    );
+    // ##### FIN DE LA CORRECCIÓN #####
+    
+    const redencionesPorOfertaQuery = pool.query(
+      `SELECT o.titulo, COUNT(r.id_redencion) as redenciones 
+       FROM redencion r 
+       JOIN oferta o ON r.id_oferta = o.id_oferta 
+       WHERE r.id_negocio = ? AND r.estado_redencion = 'redimida'
+       GROUP BY o.titulo 
+       ORDER BY redenciones DESC`,
+      [idNegocio]
+    );
+    
+    const redencionesPorDiaQuery = pool.query(
+      `SELECT DATE_FORMAT(fecha_redencion, '%Y-%m-%d') as dia, COUNT(id_redencion) as redenciones 
+       FROM redencion 
+       WHERE id_negocio = ? AND fecha_redencion >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND estado_redencion = 'redimida'
+       GROUP BY dia 
+       ORDER BY dia ASC`,
+      [idNegocio]
+    );
+
+    const ofertasStatusQuery = pool.query(
+      `SELECT e.nombre as estado, COUNT(o.id_oferta) as total 
+       FROM oferta o 
+       JOIN estado_oferta e ON o.id_estado = e.id_estado 
+       WHERE o.id_negocio = ? 
+       GROUP BY e.nombre`,
+      [idNegocio]
+    );
+
+    const [
+      [promosActivasRows],
+      [promosRedimidas30dRows],
+      [promosRedimidasTotalRows],
+      [clientesUnicos30dRows],
+      [redencionesPorOfertaRows],
+      [redencionesPorDiaRows],
+      [ofertasStatusRows]
+    ] = await Promise.all([
+      promosActivasQuery,
+      promosRedimidas30dQuery,
+      promosRedimidasTotalQuery,
+      clientesUnicos30dQuery,
+      redencionesPorOfertaQuery,
+      redencionesPorDiaQuery,
+      ofertasStatusQuery
+    ]);
+
+    const response = {
+      slots: {
+        promocionesActivas: promosActivasRows[0]?.total || 0,
+        promocionesRedimidas30d: promosRedimidas30dRows[0]?.total || 0,
+        promocionesRedimidasTotal: promosRedimidasTotalRows[0]?.total || 0,
+        clientesUnicos30d: clientesUnicos30dRows[0]?.total || 0,
+      },
+      charts: {
+        redencionesPorOferta: formatChartData(redencionesPorOfertaRows, 'titulo', 'redenciones'),
+        redencionesPorDia30d: formatChartData(redencionesPorDiaRows, 'dia', 'redenciones'),
+        ofertasStatus: formatChartData(ofertasStatusRows, 'estado', 'total'),
+      }
+    };
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(response),
+    };
+
+  } catch (error) {
+    console.error("Error en la Lambda de establecimiento:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ message: "Error interno del servidor", error: error.message }),
+    };
+  }
+};

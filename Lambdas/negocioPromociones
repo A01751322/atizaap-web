@@ -1,0 +1,211 @@
+import mysql from 'mysql2/promise';
+
+// --- DB Pool ---
+const pool = mysql.createPool({
+  host: process.env.DB_HOST, user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD, database: process.env.DB_NAME,
+  waitForConnections: true, connectionLimit: 10, queueLimit: 0,
+  timezone: '+00:00' // O la zona horaria de tu servidor, ej: 'America/Mexico_City'
+});
+
+// --- Helpers ---
+const getStatusId = (statusName = 'Activa') => (String(statusName).toLowerCase() === 'inactiva' ? 2 : 1);
+const getStatusName = (statusId) => (statusId === 2 ? 'Inactiva' : 'Activa');
+
+// Formatea YYYY-MM-DD (o timestamp completo si viene del picker) a formato SQL TIMESTAMP 'YYYY-MM-DD HH:MM:SS' o NULL
+const formatSqlTimestamp = (dateString) => {
+    if (!dateString || dateString.trim() === '') return null;
+    try {
+        // Intenta parsear como fecha completa o solo fecha
+        const date = new Date(dateString);
+         // Si la entrada es solo YYYY-MM-DD, JS la interpreta como UTC 00:00:00.
+         // Si quieres que represente el inicio del día en la zona local, ajusta:
+         // const localDate = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+         // if (isNaN(localDate.getTime())) return null;
+         // return localDate.toISOString().slice(0, 19).replace('T', ' ');
+
+        if (isNaN(date.getTime())) return null;
+        // Devuelve formato UTC 'YYYY-MM-DD HH:MM:SS'
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+    } catch (e) {
+        console.warn("Invalid date string for SQL timestamp:", dateString);
+        return null;
+    }
+};
+
+// Formatea SQL TIMESTAMP a YYYY-MM-DD para input type="date"
+const formatDateForInput = (sqlTimestamp) => {
+    if (!sqlTimestamp) return '';
+    try {
+        // Asegurarse que es un objeto Date (MySQL2 puede devolver strings o Date)
+        const date = new Date(sqlTimestamp);
+        if (isNaN(date.getTime())) return '';
+        // Obtener partes en UTC para evitar problemas de zona horaria del servidor Lambda vs DB
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.warn("Could not format SQL timestamp for input:", sqlTimestamp);
+        return '';
+    }
+};
+
+// --- Main Handler ---
+export const handler = async (event) => {
+  const headers = {
+    "Access-Control-Allow-Origin": "*", // Restrict in production
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS" // Allow GET and POST
+  };
+
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  const action = event.queryStringParameters?.action;
+  const idNegocio = event.queryStringParameters?.id_negocio; // ID del negocio logueado
+  const idOferta = event.queryStringParameters?.id_oferta;   // ID de la oferta específica para update/delete
+  const method = event.requestContext.http.method;
+  let body = {};
+
+  if (method === 'POST') {
+    try { body = JSON.parse(event.body || '{}'); }
+    catch (e) { return { statusCode: 400, headers, body: JSON.stringify({ message: "Cuerpo JSON inválido." }) }; }
+  }
+
+  // --- Validation ---
+  if (!action || !idNegocio) {
+    return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan 'action' o 'id_negocio'." }) };
+  }
+  // idOferta es requerido solo para update y delete
+  if ((action === 'updatePromotion' || action === 'deletePromotion') && !idOferta) {
+     return { statusCode: 400, headers, body: JSON.stringify({ message: `Falta 'id_oferta' para la acción ${action}.` }) };
+  }
+
+
+  try {
+    // --- Action Routing ---
+
+    // 1. LIST Promotions (GET)
+    if (method === 'GET' && action === 'listPromotions') {
+        const [promotions] = await pool.query(
+            `SELECT o.id_oferta, o.titulo, o.descripcion, o.precio, o.fecha_inicio, o.fecha_fin, eo.nombre as estado
+             FROM oferta o
+             JOIN estado_oferta eo ON o.id_estado = eo.id_estado
+             WHERE o.id_negocio = ?
+             ORDER BY o.id_estado ASC, o.fecha_fin DESC, o.titulo ASC`, // Activas primero, luego por fecha fin
+            [idNegocio]
+        );
+        // Format dates for frontend
+        const results = promotions.map(p => ({
+            id: p.id_oferta,
+            titulo: p.titulo,
+            descripcion: p.descripcion,
+            precio: parseFloat(p.precio).toFixed(2), // Asegurar formato decimal
+            fecha_inicio: formatDateForInput(p.fecha_inicio),
+            fecha_fin: formatDateForInput(p.fecha_fin),
+            estado: p.estado // 'Activa' or 'Inactiva'
+        }));
+        return { statusCode: 200, headers, body: JSON.stringify(results) };
+    }
+
+    // 2. ADD Promotion (POST)
+    if (method === 'POST' && action === 'addPromotion') {
+        const { titulo, descripcion, precio, fecha_inicio, fecha_fin, estado } = body;
+        // Validación de campos requeridos (Titulo, Precio, Estado son esenciales)
+        if (!titulo || precio === undefined || precio === null || !estado) {
+            return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan campos requeridos (Título, Precio, Estado)." }) };
+        }
+        const parsedPrecio = parseFloat(precio);
+        if (isNaN(parsedPrecio) || parsedPrecio < 0) {
+             return { statusCode: 400, headers, body: JSON.stringify({ message: "Precio inválido." }) };
+        }
+
+        const statusId = getStatusId(estado);
+        // Usar fecha actual si no se provee fecha_inicio, permitir NULL para fecha_fin
+        const sqlStartDate = formatSqlTimestamp(fecha_inicio) || new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const sqlEndDate = formatSqlTimestamp(fecha_fin); // Será NULL si fecha_fin está vacía o inválida
+
+        // *** ADVERTENCIA DB: Si fecha_fin es NOT NULL en tu DB, esto fallará si sqlEndDate es NULL ***
+        // *** Considera ALTER TABLE oferta MODIFY fecha_fin TIMESTAMP NULL; ***
+        const [result] = await pool.query(
+            `INSERT INTO oferta (id_negocio, titulo, descripcion, precio, fecha_inicio, fecha_fin, id_estado)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [idNegocio, titulo, descripcion || null, parsedPrecio, sqlStartDate, sqlEndDate, statusId]
+        );
+        return { statusCode: 201, headers, body: JSON.stringify({ message: "Promoción creada exitosamente.", newOfferId: result.insertId }) };
+    }
+
+    // 3. UPDATE Promotion (POST)
+    if (method === 'POST' && action === 'updatePromotion') {
+        const { titulo, descripcion, precio, fecha_inicio, fecha_fin, estado } = body;
+        // Validation
+        if (!titulo || precio === undefined || precio === null || !estado) {
+            return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan campos requeridos (Título, Precio, Estado)." }) };
+        }
+        const parsedPrecio = parseFloat(precio);
+        if (isNaN(parsedPrecio) || parsedPrecio < 0) {
+            return { statusCode: 400, headers, body: JSON.stringify({ message: "Precio inválido." }) };
+        }
+
+        const statusId = getStatusId(estado); // Get status ID based on the provided status
+        const sqlStartDate = formatSqlTimestamp(fecha_inicio);
+        const sqlEndDate = formatSqlTimestamp(fecha_fin);
+
+        if (!sqlStartDate) {
+            return { statusCode: 400, headers, body: JSON.stringify({ message: "Fecha de inicio inválida." }) };
+        }
+
+        const [result] = await pool.query(
+            `UPDATE oferta SET
+                titulo = ?, descripcion = ?, precio = ?, fecha_inicio = ?, fecha_fin = ?, id_estado = ?
+             WHERE id_oferta = ? AND id_negocio = ?`,
+            [titulo, descripcion || null, parsedPrecio, sqlStartDate, sqlEndDate, statusId, idOferta, idNegocio]
+        );
+
+        if (result.affectedRows === 0) {
+            return { statusCode: 404, headers, body: JSON.stringify({ message: "Promoción no encontrada o no pertenece a este negocio." }) };
+        }
+        return { statusCode: 200, headers, body: JSON.stringify({ message: "Promoción actualizada." }) };
+    }
+
+    // 4. DELETE Promotion (POST)
+    if (method === 'POST' && action === 'deletePromotion') {
+        // Antes de borrar, podríamos verificar si hay redenciones asociadas?
+        // Por ahora, borrado directo si pertenece al negocio.
+        const [result] = await pool.query(
+            "DELETE FROM oferta WHERE id_oferta = ? AND id_negocio = ?",
+            [idOferta, idNegocio]
+        );
+
+        if (result.affectedRows === 0) {
+            return { statusCode: 404, headers, body: JSON.stringify({ message: "Promoción no encontrada o no pertenece a este negocio." }) };
+        }
+        // Considerar FK con 'redencion'. Si existe, este DELETE puede fallar si hay redenciones.
+        // Podrías necesitar borrar redenciones primero o usar ON DELETE CASCADE/SET NULL.
+        return { statusCode: 200, headers, body: JSON.stringify({ message: "Promoción eliminada." }) };
+    }
+
+    // --- No Matching Action ---
+    return { statusCode: 404, headers, body: JSON.stringify({ message: "Acción no válida o método incorrecto." }) };
+
+  } catch (error) {
+    // --- General Error Handling ---
+    console.error(`Lambda negocioPromociones Error (Action: ${action}, Method: ${method}, IDNegocio: ${idNegocio}, IDOferta: ${idOferta}):`, error);
+    // Handle specific DB errors like duplicate entries if relevant
+    if (error.code === 'ER_DUP_ENTRY') {
+      return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: Conflicto de datos (posible duplicado)." }) };
+    }
+    // Handle FK violation on delete (if offer has redemptions)
+    if (error.errno === 1451 && action === 'deletePromotion') {
+         return { statusCode: 409, headers, body: JSON.stringify({ message: "Error: No se puede eliminar la promoción porque tiene redenciones registradas." }) };
+    }
+     // Handle NOT NULL violation for fecha_fin if DB requires it and we sent NULL
+     if (error.code === 'ER_BAD_NULL_ERROR' && (action === 'addPromotion' || action === 'updatePromotion') && error.message.includes('fecha_fin')) {
+         return { statusCode: 400, headers, body: JSON.stringify({ message: "Error: La base de datos requiere una Fecha Fin válida para la promoción." }) };
+     }
+
+    return { statusCode: 500, headers, body: JSON.stringify({ message: "Error interno del servidor.", error: error.message }) };
+  }
+};

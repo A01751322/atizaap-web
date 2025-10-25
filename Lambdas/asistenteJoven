@@ -1,0 +1,241 @@
+import { OpenAI } from "openai";
+import fetch from 'node-fetch'; // Requires Node.js runtime supporting ES Modules (e.g., Node 18+)
+
+// --- Configuration ---
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY, // Set this in Lambda Env Variables
+});
+const GPT_MODEL = "gpt-4o"; // Or "gpt-4" if preferred
+
+// !! Replace with your ACTUAL Lambda URLs !!
+const DATA_ESTABLECIMIENTOS_URL = "https://2r5ryogxyqzx2c3bgebhemgrfq0akuyi.lambda-url.us-east-1.on.aws/";
+const DATA_ADMINS_URL = "https://rm65wsuarfqqx43ocb6n5ruawi0mjfrr.lambda-url.us-east-1.on.aws/";
+const MAX_HISTORY_MESSAGES = 10; // Limit history to last 10 messages (5 turns)
+
+// --- Helper: Fetch data from other Lambdas (RAG Step) ---
+/** Fetches and simplifies merchant dashboard data */
+async function fetchMerchantData(idNegocio) {
+    // Return null immediately if idNegocio is invalid
+    if (!idNegocio || typeof idNegocio !== 'string' || idNegocio.trim() === '') {
+        console.warn("fetchMerchantData called with invalid idNegocio:", idNegocio);
+        return "No se proporcionó un ID de negocio válido.";
+    }
+    const url = `${DATA_ESTABLECIMIENTOS_URL}?action=getDashboard&id_negocio=${idNegocio}`;
+    console.log(`Fetching merchant data from: ${url}`);
+    try {
+        const response = await fetch(url, { timeout: 5000 }); // Add timeout
+        if (!response.ok) {
+            let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+            try {
+                 const errorBody = await response.json();
+                 errorMsg = errorBody.message || errorMsg;
+            } catch { /* Ignore if body isn't JSON */ }
+            console.error(`Error fetching merchant data for ${idNegocio}: ${errorMsg}`);
+            return `Error al obtener datos del negocio: ${errorMsg}`;
+        }
+        const data = await response.json();
+        // Build a concise string representation
+        let contextString = "Datos recientes del negocio:\n";
+        if (data && data.slots) {
+            contextString += `- Promociones Activas: ${data.slots.promocionesActivas ?? 'N/A'}\n`;
+            contextString += `- Redimidas (últimos 30 días): ${data.slots.promocionesRedimidas30d ?? 'N/A'}\n`;
+            contextString += `- Clientes Únicos (últimos 30 días): ${data.slots.clientesUnicos30d ?? 'N/A'}\n`;
+        } else {
+             contextString += "- No se encontraron datos de resumen (slots).\n";
+        }
+        if (data && data.charts?.redencionesPorOferta?.labels?.length) {
+            const topOffers = data.charts.redencionesPorOferta.labels.slice(0, 3).join(', ');
+            contextString += `- Ofertas más populares (Top ${Math.min(3, data.charts.redencionesPorOferta.labels.length)}): ${topOffers || 'Ninguna'}\n`;
+        } else {
+             contextString += "- No hay datos sobre ofertas populares.\n";
+        }
+        return contextString.trim();
+    } catch (error) {
+        console.error(`Exception fetching merchant data for ${idNegocio}:`, error.message);
+        // Distinguish network errors from others
+        const errorType = error.type === 'request-timeout' ? 'Timeout' : 'Error de red';
+        return `Hubo un ${errorType} al intentar obtener los datos específicos de tu negocio. Por favor, verifica tu conexión o inténtalo más tarde.`;
+    }
+}
+
+/** Fetches and simplifies admin dashboard data */
+async function fetchAdminData() {
+    const url = `${DATA_ADMINS_URL}?action=getDashboard`;
+    console.log(`Fetching admin data from: ${url}`);
+    try {
+        const response = await fetch(url, { timeout: 5000 }); // Add timeout
+        if (!response.ok) {
+            let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+            try { const errorBody = await response.json(); errorMsg = errorBody.message || errorMsg; }
+            catch { /* Ignore if body isn't JSON */ }
+            console.error(`Error fetching admin data: ${errorMsg}`);
+            return `Error al obtener datos agregados: ${errorMsg}`;
+        }
+        const data = await response.json();
+        let contextString = "Datos agregados recientes de la plataforma:\n";
+        if (data && data.charts?.areasActivas7d?.labels?.length) {
+             const topAreas = data.charts.areasActivas7d.labels.slice(0, 3).join(', ');
+             contextString += `- Áreas más activas (Top ${Math.min(3, data.charts.areasActivas7d.labels.length)}): ${topAreas || 'Ninguna'}\n`;
+        } else { contextString += "- No hay datos sobre áreas activas.\n"; }
+        if (data && data.charts?.topNegocios?.labels?.length) {
+             const topNegocios = data.charts.topNegocios.labels.slice(0, 3).join(', ');
+             contextString += `- Negocios con más redenciones (Top ${Math.min(3, data.charts.topNegocios.labels.length)}): ${topNegocios || 'Ninguno'}\n`;
+        } else { contextString += "- No hay datos sobre negocios top.\n"; }
+        if (data && data.charts?.conteoNegociosPorTipo?.labels?.length) {
+             const commonTypes = data.charts.conteoNegociosPorTipo.labels.slice(0,3).join(', ');
+             contextString += `- Tipos de negocio más comunes: ${commonTypes || 'Ninguno'}\n`;
+        } else { contextString += "- No hay datos sobre tipos de negocio.\n"; }
+        return contextString.trim();
+    } catch (error) {
+        console.error(`Exception fetching admin data:`, error.message);
+        const errorType = error.type === 'request-timeout' ? 'Timeout' : 'Error de red';
+        return `Hubo un ${errorType} al intentar obtener los datos agregados de la plataforma.`;
+    }
+}
+
+// --- Main Lambda Handler ---
+export const handler = async (event) => {
+    const headers = {
+        "Access-Control-Allow-Origin": "*", // Restrict in production
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS"
+    };
+
+    if (event.requestContext.http.method === 'OPTIONS') {
+        return { statusCode: 200, headers, body: '' };
+    }
+    if (event.requestContext.http.method !== 'POST') {
+        return { statusCode: 405, headers, body: JSON.stringify({ message: "Método no permitido" }) };
+    }
+
+    let requestBody;
+    try {
+        requestBody = JSON.parse(event.body || '{}');
+    } catch (e) {
+        console.error("Invalid JSON body:", event.body);
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "Cuerpo JSON inválido" }) };
+    }
+
+    const { message, context, history } = requestBody;
+    // Sanitize and limit history
+    const chatHistory = Array.isArray(history)
+        ? history
+            .filter(msg => msg && typeof msg === 'object' && ['user', 'assistant'].includes(msg.role) && typeof msg.content === 'string') // Basic validation
+            .slice(-MAX_HISTORY_MESSAGES) // Limit length
+        : [];
+
+    // Validate essential inputs
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+        return { statusCode: 400, headers, body: JSON.stringify({ message: "El campo 'message' es requerido y no puede estar vacío." }) };
+    }
+     if (!context || typeof context !== 'object' || !context.type || !['merchant', 'admin'].includes(context.type)) {
+         return { statusCode: 400, headers, body: JSON.stringify({ message: "El campo 'context' es inválido o falta 'type' ('merchant' o 'admin')." }) };
+     }
+     if (context.type === 'merchant' && (!context.id_negocio || typeof context.id_negocio !== 'string' || context.id_negocio.trim() === '')) {
+         return { statusCode: 400, headers, body: JSON.stringify({ message: "Se requiere 'id_negocio' válido para el contexto 'merchant'." }) };
+     }
+
+
+    // --- RAG & Prompt Engineering ---
+    let retrievedDataString = "";
+    let systemPrompt = "";
+    let persona = "";
+
+    try { // Wrap data fetching in try/catch as well
+        if (context.type === 'merchant') {
+            retrievedDataString = await fetchMerchantData(context.id_negocio);
+            persona = "dueño de negocio (merchant) participante en el programa 'Beneficio Joven Atizapán'";
+            systemPrompt = `Eres Asistente Joven, un asistente virtual experto y muy amigable del programa 'Beneficio Joven Atizapán' del gobierno de Atizapán de Zaragoza. Tu nombre es Asistente Joven.
+            Tu misión es ayudar a los dueños de negocios locales a entender sus datos clave (promociones activas, redenciones recientes, clientes únicos, ofertas populares).
+
+            **Proceso Interno (Tu pensamiento):**
+            1.  Analiza los datos proporcionados con la rigurosidad de un analista de datos. Busca relaciones, puntos fuertes, áreas de oportunidad.
+            2.  Piensa en 1 o 2 consejos prácticos y accionables basados *directamente* en ese análisis y en el historial de conversación si existe.
+
+            **Forma de Responder (Lo que dices al usuario):**
+            1.  **Explica tus conclusiones de forma EXTREMADAMENTE SENCILLA Y CLARA.** Usa analogías simples si es necesario. Evita totalmente la jerga de negocios o análisis. Habla como si explicaras a un amigo o familiar.
+            2.  **Integra los datos clave en tu explicación de forma natural.** No digas "según los datos...". Ejemplo: "¡Claro! Veo que tienes 5 promociones activas en este momento..."
+            3.  **Da los consejos prácticos** que pensaste, explicándolos de manera simple.
+            4.  Usa un **tono cercano, positivo y alentador**. Recuerda que hablas con todo tipo de negocios, incluyendo pequeños y familiares. Sé respetuoso.
+            5.  Sé **conciso**: 1 o 2 párrafos cortos es ideal.
+            6.  Si los datos indican un error (ej. "Error al obtener datos..."), **informa amablemente** que no pudiste consultarlos ahora, pero ofrece ayuda general si es posible. Ejemplo: "Mmm, parece que no puedo ver tus números ahora mismo para darte detalles, pero te puedo ayudar con información general sobre qué significa 'clientes únicos'. ¿Te gustaría?".
+            7.  **No inventes** información ni des consejos no basados en los datos.
+            8.  Responde siempre en español mexicano.
+            9.  Considera el historial de conversación para dar respuestas coherentes y evitar repetir información obvia.`;
+
+        } else { // context.type === 'admin'
+            retrievedDataString = await fetchAdminData();
+            persona = "administrador del programa 'Beneficio Joven Atizapán'";
+            systemPrompt = `Eres Asistente Joven, un asistente analítico de datos experto para los administradores del programa 'Beneficio Joven Atizapán' del gobierno de Atizapán de Zaragoza. Tu nombre es Asistente Joven.
+            Tu función es realizar un **análisis riguroso** de los datos agregados de la plataforma que se te proporcionan (áreas más activas, negocios top, tipos de negocio comunes).
+
+            **Instrucciones Clave:**
+            1.  Identifica patrones, tendencias, correlaciones, anomalías y puntos clave** en los datos. Compara las métricas si es relevante (ej. qué tipo de negocio es top vs. cuál es más común).
+            2.  Presenta tus **hallazgos (insights) de forma clara, directa y estructurada.** Usa formato Markdown (bullet points \`- \`, encabezados \`###\`) para mejorar la legibilidad. Cuantifica siempre que sea posible.
+            3.  Sugiere **acciones estratégicas y concretas** basadas DIRECTAMENTE en tus hallazgos, enfocadas en optimizar el programa (ej. "Considerar buscar más [Tipo Negocio X] en [Zona Y]", "Investigar por qué [Zona Z] tiene baja actividad", "Promocionar [Tipo Negocio W]").
+            4.  **Basa TODO tu análisis y recomendaciones estrictamente en los datos proporcionados.** No hagas suposiciones externas.
+            5.  Si los datos indican un error (ej. "Error al obtener datos..."), **informa al administrador** de forma profesional que no se pudo acceder a la información necesaria.
+            6.  Usa un **tono profesional, analítico y orientado a la acción.**
+            7.  Responde en español mexicano.
+            8.  Considera el historial de conversación para dar seguimiento a análisis previos o refinar recomendaciones.`;
+        }
+    } catch (fetchError) {
+         // Catch errors during fetch itself (e.g., network issues before getting a response)
+         console.error("Critical error during data fetching:", fetchError);
+         return { statusCode: 503, headers, body: JSON.stringify({ message: "No se pudo contactar a los servicios de datos. Inténtalo más tarde." }) };
+    }
+
+
+    // --- Construct Final Prompt ---
+    // Combine RAG + User Message into the LAST user message content
+    const finalUserMessageContent = `(Contexto de Datos Actuales para esta respuesta)
+\`\`\`
+${retrievedDataString || "No se pudieron obtener datos adicionales."}
+\`\`\`
+Mi pregunta/petición es: "${message}"`;
+
+    // --- Prepare messages array for OpenAI ---
+    const messagesToSend = [
+        { role: "system", content: systemPrompt },
+        // Add limited, validated chat history
+        ...chatHistory,
+        // Add the combined RAG + current user message
+        { role: "user", content: finalUserMessageContent }
+    ];
+
+    // --- Call OpenAI API ---
+    try {
+        console.log("Messages sent to OpenAI:", JSON.stringify(messagesToSend, null, 2));
+
+        const completion = await openai.chat.completions.create({
+            model: GPT_MODEL,
+            messages: messagesToSend,
+            temperature: 0.6, // Balanced temperature
+            // max_tokens: 350, // Optional: Limit response length
+        });
+
+        // Add robust check for response structure
+        const reply = completion?.choices?.[0]?.message?.content?.trim();
+        if (!reply) {
+            console.error("Invalid or empty response structure from OpenAI:", completion);
+            throw new Error("La respuesta del asistente AI no fue válida o estaba vacía.");
+        }
+
+        console.log("OpenAI Reply:", reply);
+        return { statusCode: 200, headers, body: JSON.stringify({ reply: reply }) };
+
+    } catch (error) {
+        console.error("Error calling OpenAI API:", error);
+        // Improved error message extraction
+        let errorMessage = "Error desconocido contactando al servicio de IA";
+        if (error.response) { // Axios-like error structure
+            errorMessage = error.response.data?.error?.message || JSON.stringify(error.response.data) || error.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        const userFacingError = error.message?.includes("API key") ? "Error de configuración del servicio AI." : `Error al contactar al asistente AI.`;
+        // Log detailed error but return simpler one to user
+        console.error("Detailed OpenAI Error:", errorMessage);
+        return { statusCode: 502, headers, body: JSON.stringify({ message: userFacingError /*, details: errorMessage */ }) }; // Avoid sending potentially sensitive details
+    }
+};

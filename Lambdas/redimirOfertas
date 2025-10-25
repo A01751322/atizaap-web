@@ -1,0 +1,74 @@
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+const getDigits = (str = '') => (str || "").replace(/\D+/g, '');
+
+export const handler = async (event) => {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS"
+  };
+
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+  
+  if (event.requestContext.http.method !== 'POST') {
+     return { statusCode: 405, headers, body: JSON.stringify({ message: "Método no permitido" }) };
+  }
+
+  const action = event.queryStringParameters?.action;
+
+  if (action !== 'redeemOffer') {
+    return { statusCode: 404, headers, body: JSON.stringify({ message: "Endpoint no encontrado" }) };
+  }
+
+  try {
+    const body = JSON.parse(event.body);
+    const { id_oferta, id_negocio, cardNumber } = body;
+
+    if (!id_oferta || !id_negocio || !cardNumber) {
+      return { statusCode: 400, headers, body: JSON.stringify({ message: "Faltan datos: id_oferta, id_negocio, y cardNumber son requeridos." }) };
+    }
+
+    const digits = getDigits(cardNumber);
+    if (digits.length !== 16) {
+      return { statusCode: 400, headers, body: JSON.stringify({ message: "Formato de cardNumber inválido. Deben ser 16 dígitos." }) };
+    }
+
+    const id_usuario = parseInt(digits, 10);
+    if (isNaN(id_usuario) || id_usuario <= 0) {
+       return { statusCode: 400, headers, body: JSON.stringify({ message: "Número de tarjeta no válido." }) };
+    }
+
+    const sql = `
+      INSERT INTO redencion (id_oferta, id_negocio, id_usuario, estado_redencion) 
+      VALUES (?, ?, ?, 'redimida')
+    `;
+    
+    try {
+      await pool.query(sql, [id_oferta, id_negocio, id_usuario]);
+    } catch (insertError) {
+      if (insertError.code === 'ER_NO_REFERENCED_ROW_2' || insertError.errno === 1452) {
+         return { statusCode: 400, headers, body: JSON.stringify({ message: "Error: El número de tarjeta no corresponde a un cliente registrado." }) };
+      }
+      throw insertError; 
+    }
+
+    return { statusCode: 201, headers, body: JSON.stringify({ message: "Redención registrada exitosamente" }) };
+
+  } catch (error) {
+    console.error("Error al registrar redención:", error);
+    return { statusCode: 500, headers, body: JSON.stringify({ message: "Error interno del servidor", error: error.message }) };
+  }
+};

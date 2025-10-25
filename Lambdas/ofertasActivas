@@ -1,0 +1,49 @@
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+export const handler = async (event) => {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+  };
+
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.requestContext.http.method !== 'GET') {
+    return { statusCode: 405, headers, body: JSON.stringify({ message: "Método no permitido" }) };
+  }
+
+  const action = event.queryStringParameters?.action;
+  const idNegocio = event.queryStringParameters?.id_negocio;
+
+  if (action !== 'getActiveOffers') {
+    return { statusCode: 404, headers, body: JSON.stringify({ message: "Endpoint no encontrado" }) };
+  }
+
+  if (!idNegocio) {
+    return { statusCode: 400, headers, body: JSON.stringify({ message: "Parámetro 'id_negocio' es requerido" }) };
+  }
+
+  try {
+    const [offers] = await pool.query(
+      "SELECT id_oferta, titulo FROM oferta WHERE id_negocio = ? AND id_estado = 1 ORDER BY titulo",
+      [idNegocio]
+    );
+    return { statusCode: 200, headers, body: JSON.stringify(offers) }; // Devuelve [{id_oferta, titulo}, ...]
+  } catch (error) {
+    console.error("Error en lambdaGetActiveOffers:", error);
+    return { statusCode: 500, headers, body: JSON.stringify({ message: "Error interno al obtener ofertas" }) };
+  }
+};

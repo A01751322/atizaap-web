@@ -1,0 +1,136 @@
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+const formatChartData = (rows, labelKey, dataKey) => {
+  const labels = [];
+  const data = [];
+  for (const row of rows) {
+    labels.push(row[labelKey]);
+    data.push(row[dataKey]);
+  }
+  return { labels, data };
+};
+
+export const handler = async (event) => {
+  
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+  };
+
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  const action = event.queryStringParameters?.action;
+
+  if (action !== 'getDashboard') {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ message: "Endpoint no encontrado" }),
+    };
+  }
+
+  try {
+    const areasActivasQuery = pool.query(
+      `SELECT n.tipo_negocio, COUNT(r.id_redencion) as redenciones 
+       FROM redencion r 
+       JOIN negocio n ON r.id_negocio = n.id_negocio 
+       WHERE r.fecha_redencion >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND r.estado_redencion = 'redimida'
+       GROUP BY n.tipo_negocio 
+       ORDER BY redenciones DESC`
+    );
+    
+    const redencionesGlobalDiaQuery = pool.query(
+      `SELECT DATE_FORMAT(fecha_redencion, '%Y-%m-%d') as dia, COUNT(id_redencion) as redenciones 
+       FROM redencion 
+       WHERE fecha_redencion >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND estado_redencion = 'redimida'
+       GROUP BY dia 
+       ORDER BY dia ASC`
+    );
+
+    const topNegociosQuery = pool.query(
+      `SELECT n.nombre_negocio, COUNT(r.id_redencion) as redenciones 
+       FROM redencion r 
+       JOIN negocio n ON r.id_negocio = n.id_negocio 
+       WHERE r.estado_redencion = 'redimida'
+       GROUP BY n.nombre_negocio 
+       ORDER BY redenciones DESC 
+       LIMIT 10`
+    );
+
+    const conteoNegociosTipoQuery = pool.query(
+      `SELECT tipo_negocio, COUNT(id_negocio) as total 
+       FROM negocio 
+       GROUP BY tipo_negocio 
+       ORDER BY total DESC`
+    );
+
+    // ##### CORRECCIÓN AQUÍ #####
+    // Se cambió 'usuario u' por 'usuario_app u'
+    // Se cambió 'u.username' por 'u.nombre'
+    const topUsuariosQuery = pool.query(
+      `SELECT u.nombre, COUNT(r.id_redencion) as redenciones
+       FROM redencion r
+       JOIN usuario_app u ON r.id_usuario = u.id_usuario
+       WHERE r.estado_redencion = 'redimida'
+       GROUP BY u.nombre
+       ORDER BY redenciones DESC
+       LIMIT 10`
+    );
+    // ##### FIN DE LA CORRECCIÓN #####
+
+    const [
+      [areasActivasRows],
+      [redencionesGlobalDiaRows],
+      [topNegociosRows],
+      [conteoNegociosTipoRows],
+      [topUsuariosRows]
+    ] = await Promise.all([
+      areasActivasQuery,
+      redencionesGlobalDiaQuery,
+      topNegociosQuery,
+      conteoNegociosTipoQuery,
+      topUsuariosQuery
+    ]);
+
+    const response = {
+      charts: {
+        areasActivas7d: formatChartData(areasActivasRows, 'tipo_negocio', 'redenciones'),
+        redencionesGlobal30d: formatChartData(redencionesGlobalDiaRows, 'dia', 'redenciones'),
+        topNegocios: formatChartData(topNegociosRows, 'nombre_negocio', 'redenciones'),
+        conteoNegociosPorTipo: formatChartData(conteoNegociosTipoRows, 'tipo_negocio', 'total'),
+        topUsuarios: formatChartData(topUsuariosRows, 'nombre', 'redenciones') // <- Se cambia 'username' por 'nombre'
+      }
+    };
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(response),
+    };
+
+  } catch (error) {
+    console.error("Error en la Lambda de admin:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ message: "Error interno del servidor", error: error.message }),
+    };
+  }
+};
